@@ -32,3 +32,12 @@ The minimum supported Rust version is 1.56.0.
 See
 [CHANGELOG.md](https://github.com/Wasabi375/binary-heap-plus-rs/blob/master/CHANGELOG.md).
 
+
+# License
+
+[binary-heap-plus](https://github.com/sekineh/binary-heap-plus-rs) is licensed under the
+MIT license which can be found at [LICENSE_MIT](LICENSE_MIT).
+
+All changes that are not from that repository are licensed under [GPL-2.0-only](LICENSE).
+All changes following git commit (75bff04258fe073edf8107b432394221e14f68bb) 
+are licensed under GPL-2.0-only.
