@@ -33,7 +33,7 @@
 //! For max heap, [`BinaryHeap::from_vec()`] is the most versatile way to create a heap.
 //!
 //! ```rust
-//! use binary_heap_plus::*;
+//! use mut_binary_heap::*;
 //!
 //! // max heap
 //! let mut h: BinaryHeap<i32> = BinaryHeap::from_vec(vec![]);
@@ -47,7 +47,7 @@
 //! Min heap is similar, but requires type annotation.
 //!
 //! ```rust
-//! use binary_heap_plus::*;
+//! use mut_binary_heap::*;
 //!
 //! // min heap
 //! let mut h: BinaryHeap<i32, MinComparator> = BinaryHeap::from_vec(vec![]);
@@ -66,7 +66,7 @@
 //! only difference is that you add the comparator closure with apropriate signature.
 //!
 //! ```rust
-//! use binary_heap_plus::*;
+//! use mut_binary_heap::*;
 //!
 //! // custom heap: ordered by second value (_.1) of the tuples; min first
 //! let mut h = BinaryHeap::from_vec_cmp(
@@ -89,7 +89,7 @@
 //! [`BinaryHeap::from_vec_cmp`]: struct.BinaryHeap.html#method.from_vec_cmp
 //!
 //! ```
-//! use binary_heap_plus::*;
+//! use mut_binary_heap::*;
 //!
 //! // max heap (default)
 //! let mut heap: BinaryHeap<i32> = BinaryHeap::from_vec(vec![1,5,3]);

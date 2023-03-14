@@ -37,7 +37,7 @@
 //!
 //! ```
 //! use std::cmp::Ordering;
-//! use binary_heap_plus::BinaryHeap;
+//! use mut_binary_heap::BinaryHeap;
 //!
 //! #[derive(Copy, Clone, Eq, PartialEq)]
 //! struct State {
@@ -168,6 +168,8 @@
 // use core::iter::{FromIterator, FusedIterator};
 use std::cmp::Ordering;
 use std::collections::HashMap;
+#[cfg(feature = "serde")]
+use std::hash::Hash;
 use std::slice;
 // use std::iter::FusedIterator;
 // use std::vec::Drain;
@@ -176,7 +178,11 @@ use core::fmt;
 use core::mem::{swap, ManuallyDrop};
 use core::ptr;
 #[cfg(feature = "serde")]
-use serde::{Deserialize, Serialize};
+use serde::{
+    de::{self, MapAccess, SeqAccess, Visitor},
+    ser::SerializeStruct,
+    Deserialize, Deserializer, Serialize, Serializer,
+};
 use std::ops::Deref;
 use std::ops::DerefMut;
 use std::vec;
@@ -201,7 +207,7 @@ use std::vec;
 /// # Examples
 ///
 /// ```
-/// use binary_heap_plus::BinaryHeap;
+/// use mut_binary_heap::BinaryHeap;
 ///
 /// // Type inference lets us omit an explicit type signature (which
 /// // would be `BinaryHeap<i32, MaxComparator>` in this example).
@@ -244,7 +250,7 @@ use std::vec;
 /// A `BinaryHeap` with a known list of items can be initialized from an array:
 ///
 /// ```
-/// use binary_heap_plus::BinaryHeap;
+/// use mut_binary_heap::BinaryHeap;
 ///
 /// // This will create a max-heap.
 /// let heap = BinaryHeap::from([1, 5, 2]);
@@ -256,7 +262,7 @@ use std::vec;
 /// implementation.
 ///
 /// ```
-/// use binary_heap_plus::BinaryHeap;
+/// use mut_binary_heap::BinaryHeap;
 ///
 /// let mut heap = BinaryHeap::new_min();
 ///
@@ -290,7 +296,6 @@ use std::vec;
 /// [peek]: BinaryHeap::peek
 /// [peek\_mut]: BinaryHeap::peek_mut
 // #[stable(feature = "rust1", since = "1.0.0")]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct BinaryHeap<K, T, C = MaxComparator> {
     data: Vec<(K, T)>,
     cmp: C,
@@ -466,7 +471,7 @@ impl<K, T, C: Compare<T> + Default> BinaryHeap<K, T, C> {
     /// Basic usage:
     ///
     /// ```
-    /// use binary_heap_plus::BinaryHeap;
+    /// use mut_binary_heap::BinaryHeap;
     /// let mut heap = BinaryHeap::new();
     /// heap.push(3);
     /// heap.push(1);
@@ -495,7 +500,7 @@ impl<K, T, C: Compare<T> + Default> BinaryHeap<K, T, C> {
     /// Basic usage:
     ///
     /// ```
-    /// use binary_heap_plus::BinaryHeap;
+    /// use mut_binary_heap::BinaryHeap;
     /// let mut heap = BinaryHeap::with_capacity(10);
     /// assert_eq!(heap.capacity(), 10);
     /// heap.push(3);
@@ -524,7 +529,7 @@ impl<K, T: Ord> BinaryHeap<K, T, MinComparator> {
     /// Basic usage:
     ///
     /// ```
-    /// use binary_heap_plus::BinaryHeap;
+    /// use mut_binary_heap::BinaryHeap;
     /// let mut heap = BinaryHeap::new_min();
     /// heap.push(3);
     /// heap.push(1);
@@ -548,7 +553,7 @@ impl<K, T: Ord> BinaryHeap<K, T, MinComparator> {
     /// Basic usage:
     ///
     /// ```
-    /// use binary_heap_plus::BinaryHeap;
+    /// use mut_binary_heap::BinaryHeap;
     /// let mut heap = BinaryHeap::with_capacity_min(10);
     /// assert_eq!(heap.capacity(), 10);
     /// heap.push(3);
@@ -575,7 +580,7 @@ where
     /// Basic usage:
     ///
     /// ```
-    /// use binary_heap_plus::BinaryHeap;
+    /// use mut_binary_heap::BinaryHeap;
     /// let mut heap = BinaryHeap::new_by(|a: &i32, b: &i32| b.cmp(a));
     /// heap.push(3);
     /// heap.push(1);
@@ -599,7 +604,7 @@ where
     /// Basic usage:
     ///
     /// ```
-    /// use binary_heap_plus::BinaryHeap;
+    /// use mut_binary_heap::BinaryHeap;
     /// let mut heap = BinaryHeap::with_capacity_by(10, |a: &i32, b: &i32| b.cmp(a));
     /// assert_eq!(heap.capacity(), 10);
     /// heap.push(3);
@@ -626,7 +631,7 @@ where
     /// Basic usage:
     ///
     /// ```
-    /// use binary_heap_plus::BinaryHeap;
+    /// use mut_binary_heap::BinaryHeap;
     /// let mut heap = BinaryHeap::new_by_key(|a: &i32| a % 4);
     /// heap.push(3);
     /// heap.push(1);
@@ -650,7 +655,7 @@ where
     /// Basic usage:
     ///
     /// ```
-    /// use binary_heap_plus::BinaryHeap;
+    /// use mut_binary_heap::BinaryHeap;
     /// let mut heap = BinaryHeap::with_capacity_by_key(10, |a: &i32| a % 4);
     /// assert_eq!(heap.capacity(), 10);
     /// heap.push(3);
@@ -672,7 +677,7 @@ impl<K, T, C: Compare<T>> BinaryHeap<K, T, C> {
     /// Basic usage:
     ///
     /// ```
-    /// use binary_heap_plus::BinaryHeap;
+    /// use mut_binary_heap::BinaryHeap;
     /// use compare::Compare;
     /// use std::cmp::Ordering;
     ///
@@ -726,7 +731,7 @@ impl<K, T, C: Compare<T>> BinaryHeap<K, T, C> {
     /// Basic usage:
     ///
     /// ```
-    /// use binary_heap_plus::BinaryHeap;
+    /// use mut_binary_heap::BinaryHeap;
     /// let mut heap = BinaryHeap::new();
     /// assert!(heap.peek_mut().is_none());
     ///
@@ -764,7 +769,7 @@ impl<K, T, C: Compare<T>> BinaryHeap<K, T, C> {
     /// Basic usage:
     ///
     /// ```
-    /// use binary_heap_plus::BinaryHeap;
+    /// use mut_binary_heap::BinaryHeap;
     /// let mut heap = BinaryHeap::from([1, 3]);
     ///
     /// assert_eq!(heap.pop(), Some(3));
@@ -798,7 +803,7 @@ impl<K, T, C: Compare<T>> BinaryHeap<K, T, C> {
     /// Basic usage:
     ///
     /// ```
-    /// use binary_heap_plus::BinaryHeap;
+    /// use mut_binary_heap::BinaryHeap;
     /// let mut heap = BinaryHeap::new();
     /// heap.push(3);
     /// heap.push(5);
@@ -841,7 +846,7 @@ impl<K, T, C: Compare<T>> BinaryHeap<K, T, C> {
     /// Basic usage:
     ///
     /// ```
-    /// use binary_heap_plus::BinaryHeap;
+    /// use mut_binary_heap::BinaryHeap;
     ///
     /// let mut heap = BinaryHeap::from([1, 2, 4, 5, 7]);
     /// heap.push(6);
@@ -1071,7 +1076,7 @@ impl<K, T, C: Compare<T>> BinaryHeap<K, T, C> {
     /// Basic usage:
     ///
     /// ```
-    /// use binary_heap_plus::BinaryHeap;
+    /// use mut_binary_heap::BinaryHeap;
     ///
     /// let mut a = BinaryHeap::from([-10, 1, 2, 3, 3]);
     /// let mut b = BinaryHeap::from([-20, 5, 43]);
@@ -1104,7 +1109,7 @@ impl<K, T, C> BinaryHeap<K, T, C> {
     /// Basic usage:
     ///
     /// ```
-    /// use binary_heap_plus::BinaryHeap;
+    /// use mut_binary_heap::BinaryHeap;
     /// let heap = BinaryHeap::from([1, 2, 3, 4]);
     ///
     /// // Print 1, 2, 3, 4 in arbitrary order
@@ -1127,7 +1132,7 @@ impl<K, T, C> BinaryHeap<K, T, C> {
     /// Basic usage:
     ///
     /// ```
-    /// use binary_heap_plus::BinaryHeap;
+    /// use mut_binary_heap::BinaryHeap;
     /// let heap = BinaryHeap::from([1, 2, 3, 4, 5]);
     ///
     /// assert_eq!(heap.into_iter_sorted().take(2).collect::<Vec<_>>(), [5, 4]);
@@ -1144,7 +1149,7 @@ impl<K, T, C> BinaryHeap<K, T, C> {
     /// Basic usage:
     ///
     /// ```
-    /// use binary_heap_plus::BinaryHeap;
+    /// use mut_binary_heap::BinaryHeap;
     /// let mut heap = BinaryHeap::new();
     /// assert_eq!(heap.peek(), None);
     ///
@@ -1177,7 +1182,7 @@ impl<K, T, C> BinaryHeap<K, T, C> {
     /// Basic usage:
     ///
     /// ```
-    /// use binary_heap_plus::BinaryHeap;
+    /// use mut_binary_heap::BinaryHeap;
     /// let mut heap = BinaryHeap::with_capacity(100);
     /// assert!(heap.capacity() >= 100);
     /// heap.push(4);
@@ -1204,7 +1209,7 @@ impl<K, T, C> BinaryHeap<K, T, C> {
     /// Basic usage:
     ///
     /// ```
-    /// use binary_heap_plus::BinaryHeap;
+    /// use mut_binary_heap::BinaryHeap;
     /// let mut heap = BinaryHeap::new();
     /// heap.reserve_exact(100);
     /// assert!(heap.capacity() >= 100);
@@ -1229,7 +1234,7 @@ impl<K, T, C> BinaryHeap<K, T, C> {
     /// Basic usage:
     ///
     /// ```
-    /// use binary_heap_plus::BinaryHeap;
+    /// use mut_binary_heap::BinaryHeap;
     /// let mut heap = BinaryHeap::new();
     /// heap.reserve(100);
     /// assert!(heap.capacity() >= 100);
@@ -1247,7 +1252,7 @@ impl<K, T, C> BinaryHeap<K, T, C> {
     /// Basic usage:
     ///
     /// ```
-    /// use binary_heap_plus::BinaryHeap;
+    /// use mut_binary_heap::BinaryHeap;
     /// let mut heap: BinaryHeap<i32> = BinaryHeap::with_capacity(100);
     ///
     /// assert!(heap.capacity() >= 100);
@@ -1289,7 +1294,7 @@ impl<K, T, C> BinaryHeap<K, T, C> {
     /// Basic usage:
     ///
     /// ```
-    /// use binary_heap_plus::BinaryHeap;
+    /// use mut_binary_heap::BinaryHeap;
     /// let heap = BinaryHeap::from([1, 2, 3, 4, 5, 6, 7]);
     /// let vec = heap.into_vec();
     ///
@@ -1312,7 +1317,7 @@ impl<K, T, C> BinaryHeap<K, T, C> {
     /// Basic usage:
     ///
     /// ```
-    /// use binary_heap_plus::BinaryHeap;
+    /// use mut_binary_heap::BinaryHeap;
     /// let heap = BinaryHeap::from([1, 3]);
     ///
     /// assert_eq!(heap.len(), 2);
@@ -1330,7 +1335,7 @@ impl<K, T, C> BinaryHeap<K, T, C> {
     /// Basic usage:
     ///
     /// ```
-    /// use binary_heap_plus::BinaryHeap;
+    /// use mut_binary_heap::BinaryHeap;
     /// let mut heap = BinaryHeap::new();
     ///
     /// assert!(heap.is_empty());
@@ -1359,7 +1364,7 @@ impl<K, T, C> BinaryHeap<K, T, C> {
     /// Basic usage:
     ///
     /// ```
-    /// use binary_heap_plus::BinaryHeap;
+    /// use mut_binary_heap::BinaryHeap;
     /// let mut heap = BinaryHeap::from([1, 3]);
     ///
     /// assert!(!heap.is_empty());
@@ -1385,7 +1390,7 @@ impl<K, T, C> BinaryHeap<K, T, C> {
     /// Basic usage:
     ///
     /// ```
-    /// use binary_heap_plus::BinaryHeap;
+    /// use mut_binary_heap::BinaryHeap;
     /// let mut heap = BinaryHeap::from([1, 3]);
     ///
     /// assert!(!heap.is_empty());
@@ -1397,6 +1402,151 @@ impl<K, T, C> BinaryHeap<K, T, C> {
     // #[stable(feature = "rust1", since = "1.0.0")]
     pub fn clear(&mut self) {
         self.drain();
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<K: Hash + Eq + Serialize, T: Serialize, C: Serialize> Serialize for BinaryHeap<K, T, C> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut state = serializer.serialize_struct("BinaryHeap", 3)?;
+        state.serialize_field("data", &self.data)?;
+        state.serialize_field("cmp", &self.cmp)?;
+        state.serialize_field("indices", &self.indices)?;
+        state.end()
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<'de, K: Hash + Eq + Deserialize<'de>, T: Deserialize<'de>, C: Deserialize<'de>>
+    Deserialize<'de> for BinaryHeap<K, T, C>
+{
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        enum Field {
+            Data,
+            Cmp,
+            Indices,
+        }
+
+        impl<'de> Deserialize<'de> for Field {
+            fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+            where
+                D: Deserializer<'de>,
+            {
+                struct FieldVisitor;
+
+                impl<'de_f> Visitor<'de_f> for FieldVisitor {
+                    type Value = Field;
+
+                    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                        formatter.write_str("`data` or `cmp` or `indices`")
+                    }
+
+                    fn visit_str<E>(self, value: &str) -> Result<Field, E>
+                    where
+                        E: de::Error,
+                    {
+                        match value {
+                            "data" => Ok(Field::Data),
+                            "cmp" => Ok(Field::Cmp),
+                            "indices" => Ok(Field::Indices),
+                            _ => Err(de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(FieldVisitor)
+            }
+        }
+
+        struct BinaryHeapVisitor<
+            'de_bh,
+            K: Hash + Eq + Deserialize<'de_bh>,
+            T: Deserialize<'de_bh>,
+            C: Deserialize<'de_bh>,
+        > {
+            _phandom_de: std::marker::PhantomData<&'de_bh ()>,
+            _phantom_k: std::marker::PhantomData<K>,
+            _phantom_t: std::marker::PhantomData<T>,
+            _phtatom_c: std::marker::PhantomData<C>,
+        }
+
+        impl<
+                'de_bh,
+                K: Hash + Eq + Deserialize<'de_bh>,
+                T: Deserialize<'de_bh>,
+                C: Deserialize<'de_bh>,
+            > Visitor<'de_bh> for BinaryHeapVisitor<'de_bh, K, T, C>
+        {
+            type Value = BinaryHeap<K, T, C>;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("struct BinaryHeap")
+            }
+
+            fn visit_seq<V>(self, mut seq: V) -> Result<Self::Value, V::Error>
+            where
+                V: SeqAccess<'de_bh>,
+            {
+                let data = seq
+                    .next_element()?
+                    .ok_or_else(|| de::Error::invalid_length(0, &self))?;
+                let cmp = seq
+                    .next_element()?
+                    .ok_or_else(|| de::Error::invalid_length(1, &self))?;
+                let indices = seq
+                    .next_element()?
+                    .ok_or_else(|| de::Error::invalid_length(2, &self))?;
+
+                Ok(BinaryHeap { data, cmp, indices })
+            }
+
+            fn visit_map<V>(self, mut map: V) -> Result<Self::Value, V::Error>
+            where
+                V: MapAccess<'de_bh>,
+            {
+                let mut data = None;
+                let mut cmp = None;
+                let mut indices = None;
+                while let Some(key) = map.next_key()? {
+                    match key {
+                        Field::Data => {
+                            if data.is_some() {
+                                return Err(de::Error::duplicate_field("data"));
+                            }
+                            data = Some(map.next_value()?);
+                        }
+                        Field::Cmp => {
+                            if cmp.is_some() {
+                                return Err(de::Error::duplicate_field("cmp"));
+                            }
+                            cmp = Some(map.next_value()?);
+                        }
+                        Field::Indices => {
+                            if indices.is_some() {
+                                return Err(de::Error::duplicate_field("indices"));
+                            }
+                            indices = Some(map.next_value()?);
+                        }
+                    }
+                }
+                todo!()
+            }
+        }
+
+        let visitor = BinaryHeapVisitor {
+            _phandom_de: Default::default(),
+            _phantom_k: Default::default(),
+            _phantom_t: Default::default(),
+            _phtatom_c: Default::default(),
+        };
+
+        const FIELDS: &'static [&'static str] = &["data", "cmp", "indices"];
+        deserializer.deserialize_struct("BinaryHeap", FIELDS, visitor)
     }
 }
 
@@ -1674,7 +1824,7 @@ impl<T> DoubleEndedIterator for Drain<'_, T> {
 
 // impl<K, T: Ord, const N: usize> From<[T; N]> for BinaryHeap<K, T> {
 //     /// ```
-//     /// use binary_heap_plus::BinaryHeap;
+//     /// use mut_binary_heap::BinaryHeap;
 //     ///
 //     /// let mut h1 = BinaryHeap::from([1, 4, 2, 3]);
 //     /// let mut h2: BinaryHeap<_> = [1, 4, 2, 3].into();
@@ -1719,7 +1869,7 @@ impl<K, T, C> IntoIterator for BinaryHeap<K, T, C> {
     /// Basic usage:
     ///
     /// ```
-    /// use binary_heap_plus::BinaryHeap;
+    /// use mut_binary_heap::BinaryHeap;
     /// let heap = BinaryHeap::from([1, 2, 3, 4]);
     ///
     /// // Print 1, 2, 3, 4 in arbitrary order

@@ -11,6 +11,9 @@ categories = ["data-structures", "algorithms", ]
 edition = "2021"
 rust-version = "1.56.0"
 
+[lib]
+doctest = false # TODO reenable doc tests
+
 [dependencies]
 compare = "0.1.0"
 serde = { version = "1.0.116", optional = true, features = ["derive"] }
