@@ -445,7 +445,7 @@ impl<K: Clone, T: Clone, C: Clone> Clone for BinaryHeap<K, T, C> {
 }
 
 // #[stable(feature = "rust1", since = "1.0.0")]
-impl<K, T, C: Compare<T> + Default> Default for BinaryHeap<K, T, C> {
+impl<K: Hash + Eq, T, C: Compare<T> + Default> Default for BinaryHeap<K, T, C> {
     /// Creates an empty `BinaryHeap<K, T>`.
     #[inline]
     fn default() -> BinaryHeap<K, T, C> {
@@ -460,7 +460,7 @@ impl<K: fmt::Debug, T: fmt::Debug, C> fmt::Debug for BinaryHeap<K, T, C> {
     }
 }
 
-impl<K, T, C: Compare<T> + Default> BinaryHeap<K, T, C> {
+impl<K: Hash + Eq, T, C: Compare<T> + Default> BinaryHeap<K, T, C> {
     /// Creates an empty `BinaryHeap`.
     ///
     /// This default version will create a max-heap.
@@ -480,11 +480,7 @@ impl<K, T, C: Compare<T> + Default> BinaryHeap<K, T, C> {
     // #[stable(feature = "rust1", since = "1.0.0")]
     #[must_use]
     pub fn new() -> Self {
-        BinaryHeap {
-            data: Vec::new(),
-            cmp: C::default(),
-            keys: HashMap::new(),
-        }
+        unsafe { BinaryHeap::new_from_data_raw(Vec::new(), HashMap::new(), C::default(), false) }
     }
 
     /// Creates an empty `BinaryHeap` with a specific capacity.
@@ -510,15 +506,35 @@ impl<K, T, C: Compare<T> + Default> BinaryHeap<K, T, C> {
     // #[stable(feature = "rust1", since = "1.0.0")]
     #[must_use]
     pub fn with_capacity(capacity: usize) -> Self {
-        BinaryHeap {
-            data: Vec::with_capacity(capacity),
-            cmp: C::default(),
-            keys: HashMap::with_capacity(capacity),
+        unsafe {
+            BinaryHeap::new_from_data_raw(
+                Vec::with_capacity(capacity),
+                HashMap::with_capacity(capacity),
+                C::default(),
+                false,
+            )
         }
     }
 }
 
-impl<K, T: Ord> BinaryHeap<K, T, MinComparator> {
+impl<K: Hash + Eq, T, C: Compare<T>> BinaryHeap<K, T, C> {
+    #[must_use]
+    pub unsafe fn new_from_data_raw(
+        data: Vec<(K, T)>,
+        keys: HashMap<K, usize>,
+        cmp: C,
+        rebuild: bool,
+    ) -> Self {
+        let mut heap = BinaryHeap { data, cmp, keys };
+        debug_assert!(heap.data.len() == heap.keys.len());
+        if rebuild && !heap.data.is_empty() {
+            heap.rebuild();
+        }
+        heap
+    }
+}
+
+impl<K: Hash + Eq, T: Ord> BinaryHeap<K, T, MinComparator> {
     /// Creates an empty `BinaryHeap`.
     ///
     /// The `_min()` version will create a min-heap.
@@ -537,7 +553,7 @@ impl<K, T: Ord> BinaryHeap<K, T, MinComparator> {
     /// ```
     #[must_use]
     pub fn new_min() -> Self {
-        todo!("new_min")
+        unsafe { BinaryHeap::new_from_data_raw(Vec::new(), HashMap::new(), MinComparator, false) }
     }
 
     /// Creates an empty `BinaryHeap` with a specific capacity.
@@ -561,12 +577,19 @@ impl<K, T: Ord> BinaryHeap<K, T, MinComparator> {
     /// assert_eq!(heap.pop(), Some(1));
     /// ```
     #[must_use]
-    pub fn with_capacity_min(_capacity: usize) -> Self {
-        todo!("with_capacity_min")
+    pub fn with_capacity_min(capacity: usize) -> Self {
+        unsafe {
+            BinaryHeap::new_from_data_raw(
+                Vec::with_capacity(capacity),
+                HashMap::with_capacity(capacity),
+                MinComparator,
+                false,
+            )
+        }
     }
 }
 
-impl<K, T, F> BinaryHeap<K, T, FnComparator<F>>
+impl<K: Hash + Eq, T, F> BinaryHeap<K, T, FnComparator<F>>
 where
     F: Fn(&T, &T) -> Ordering,
 {
@@ -587,8 +610,8 @@ where
     /// assert_eq!(heap.pop(), Some(1));
     /// ```
     #[must_use]
-    pub fn new_by(_f: F) -> Self {
-        todo!("new_by")
+    pub fn new_by(f: F) -> Self {
+        unsafe { BinaryHeap::new_from_data_raw(Vec::new(), HashMap::new(), FnComparator(f), false) }
     }
 
     /// Creates an empty `BinaryHeap` with a specific capacity.
@@ -612,12 +635,19 @@ where
     /// assert_eq!(heap.pop(), Some(1));
     /// ```
     #[must_use]
-    pub fn with_capacity_by(_capacity: usize, _f: F) -> Self {
-        todo!("with_capacity_by")
+    pub fn with_capacity_by(capacity: usize, f: F) -> Self {
+        unsafe {
+            BinaryHeap::new_from_data_raw(
+                Vec::with_capacity(capacity),
+                HashMap::with_capacity(capacity),
+                FnComparator(f),
+                false,
+            )
+        }
     }
 }
 
-impl<K, T, F, C: Ord> BinaryHeap<K, T, KeyComparator<F>>
+impl<K: Hash + Eq, T, F, C: Ord> BinaryHeap<K, T, KeyComparator<F>>
 where
     F: Fn(&T) -> C,
 {
@@ -638,8 +668,10 @@ where
     /// assert_eq!(heap.pop(), Some(3));
     /// ```
     #[must_use]
-    pub fn new_by_key(_f: F) -> Self {
-        todo!("new_by_key")
+    pub fn new_by_key(f: F) -> Self {
+        unsafe {
+            BinaryHeap::new_from_data_raw(Vec::new(), HashMap::new(), KeyComparator(f), false)
+        }
     }
 
     /// Creates an empty `BinaryHeap` with a specific capacity.
@@ -663,8 +695,15 @@ where
     /// assert_eq!(heap.pop(), Some(3));
     /// ```
     #[must_use]
-    pub fn with_capacity_by_key(_capacity: usize, _f: F) -> Self {
-        todo!("with_capacity_by_key")
+    pub fn with_capacity_by_key(capacity: usize, f: F) -> Self {
+        unsafe {
+            BinaryHeap::new_from_data_raw(
+                Vec::with_capacity(capacity),
+                HashMap::with_capacity(capacity),
+                KeyComparator(f),
+                false,
+            )
+        }
     }
 }
 
