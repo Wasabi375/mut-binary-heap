@@ -1419,7 +1419,7 @@ impl<'de, K: Hash + Eq + Deserialize<'de>, T: Deserialize<'de>, C: Deserialize<'
         enum Field {
             Data,
             Cmp,
-            Indices,
+            Keys,
         }
 
         impl<'de> Deserialize<'de> for Field {
@@ -1433,7 +1433,7 @@ impl<'de, K: Hash + Eq + Deserialize<'de>, T: Deserialize<'de>, C: Deserialize<'
                     type Value = Field;
 
                     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-                        formatter.write_str("`data` or `cmp` or `indices`")
+                        formatter.write_str("`data` or `cmp` or `keys`")
                     }
 
                     fn visit_str<E>(self, value: &str) -> Result<Field, E>
@@ -1443,7 +1443,7 @@ impl<'de, K: Hash + Eq + Deserialize<'de>, T: Deserialize<'de>, C: Deserialize<'
                         match value {
                             "data" => Ok(Field::Data),
                             "cmp" => Ok(Field::Cmp),
-                            "indices" => Ok(Field::Indices),
+                            "keys" => Ok(Field::Keys),
                             _ => Err(de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -1487,15 +1487,11 @@ impl<'de, K: Hash + Eq + Deserialize<'de>, T: Deserialize<'de>, C: Deserialize<'
                 let cmp = seq
                     .next_element()?
                     .ok_or_else(|| de::Error::invalid_length(1, &self))?;
-                let indices = seq
+                let keys = seq
                     .next_element()?
                     .ok_or_else(|| de::Error::invalid_length(2, &self))?;
 
-                Ok(BinaryHeap {
-                    data,
-                    cmp,
-                    keys: indices,
-                })
+                Ok(BinaryHeap { data, cmp, keys })
             }
 
             fn visit_map<V>(self, mut map: V) -> Result<Self::Value, V::Error>
@@ -1504,7 +1500,7 @@ impl<'de, K: Hash + Eq + Deserialize<'de>, T: Deserialize<'de>, C: Deserialize<'
             {
                 let mut data = None;
                 let mut cmp = None;
-                let mut indices = None;
+                let mut keys = None;
                 while let Some(key) = map.next_key()? {
                     match key {
                         Field::Data => {
@@ -1519,15 +1515,20 @@ impl<'de, K: Hash + Eq + Deserialize<'de>, T: Deserialize<'de>, C: Deserialize<'
                             }
                             cmp = Some(map.next_value()?);
                         }
-                        Field::Indices => {
-                            if indices.is_some() {
-                                return Err(de::Error::duplicate_field("indices"));
+                        Field::Keys => {
+                            if keys.is_some() {
+                                return Err(de::Error::duplicate_field("keys"));
                             }
-                            indices = Some(map.next_value()?);
+                            keys = Some(map.next_value()?);
                         }
                     }
                 }
-                todo!()
+
+                let data = data.or_else(|| de::Error::missing_field("data"));
+                let cmp = cmp.or_else(|| de::Error::missing_field("cmp"));
+                let keys = keys.or_else(|| de::Error::missing_field("keys"));
+
+                Ok(BinaryHeap { data, cmp, keys })
             }
         }
 
@@ -1538,7 +1539,7 @@ impl<'de, K: Hash + Eq + Deserialize<'de>, T: Deserialize<'de>, C: Deserialize<'
             _phtatom_c: Default::default(),
         };
 
-        const FIELDS: &'static [&'static str] = &["data", "cmp", "indices"];
+        const FIELDS: &'static [&'static str] = &["data", "cmp", "keys"];
         deserializer.deserialize_struct("BinaryHeap", FIELDS, visitor)
     }
 }
