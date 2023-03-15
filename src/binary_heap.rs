@@ -168,7 +168,6 @@
 // use core::iter::{FromIterator, FusedIterator};
 use std::cmp::Ordering;
 use std::collections::HashMap;
-#[cfg(feature = "serde")]
 use std::hash::Hash;
 use std::slice;
 // use std::iter::FusedIterator;
@@ -299,7 +298,7 @@ use std::vec;
 pub struct BinaryHeap<K, T, C = MaxComparator> {
     data: Vec<(K, T)>,
     cmp: C,
-    indices: HashMap<K, usize>,
+    keys: HashMap<K, usize>,
 }
 
 /// For `T` that implements `Ord`, you can use this struct to quickly
@@ -362,20 +361,20 @@ where
 ///
 /// [`peek_mut`]: BinaryHeap::peek_mut
 // #[stable(feature = "binary_heap_peek_mut", since = "1.12.0")]
-pub struct PeekMut<'a, K, T: 'a, C: 'a + Compare<T>> {
+pub struct PeekMut<'a, K: Hash + Eq, T: 'a, C: 'a + Compare<T>> {
     heap: &'a mut BinaryHeap<K, T, C>,
     sift: bool,
 }
 
 // #[stable(feature = "collection_debug", since = "1.17.0")]
-impl<K: fmt::Debug, T: fmt::Debug, C: Compare<T>> fmt::Debug for PeekMut<'_, K, T, C> {
+impl<K: fmt::Debug + Hash + Eq, T: fmt::Debug, C: Compare<T>> fmt::Debug for PeekMut<'_, K, T, C> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_tuple("PeekMut").field(&self.heap.data[0]).finish()
     }
 }
 
 // #[stable(feature = "binary_heap_peek_mut", since = "1.12.0")]
-impl<K, T, C: Compare<T>> Drop for PeekMut<'_, K, T, C> {
+impl<K: Hash + Eq, T, C: Compare<T>> Drop for PeekMut<'_, K, T, C> {
     fn drop(&mut self) {
         if self.sift {
             // SAFETY: PeekMut is only instantiated for non-empty heaps.
@@ -385,7 +384,7 @@ impl<K, T, C: Compare<T>> Drop for PeekMut<'_, K, T, C> {
 }
 
 // #[stable(feature = "binary_heap_peek_mut", since = "1.12.0")]
-impl<K, T, C: Compare<T>> Deref for PeekMut<'_, K, T, C> {
+impl<K: Hash + Eq, T, C: Compare<T>> Deref for PeekMut<'_, K, T, C> {
     type Target = T;
     fn deref(&self) -> &T {
         self.key_value().1
@@ -393,13 +392,13 @@ impl<K, T, C: Compare<T>> Deref for PeekMut<'_, K, T, C> {
 }
 
 // #[stable(feature = "binary_heap_peek_mut", since = "1.12.0")]
-impl<K, T, C: Compare<T>> DerefMut for PeekMut<'_, K, T, C> {
+impl<K: Hash + Eq, T, C: Compare<T>> DerefMut for PeekMut<'_, K, T, C> {
     fn deref_mut(&mut self) -> &mut T {
         self.key_value_mut().1
     }
 }
 
-impl<'a, K, T, C: Compare<T>> PeekMut<'_, K, T, C> {
+impl<'a, K: Hash + Eq, T, C: Compare<T>> PeekMut<'_, K, T, C> {
     pub fn key_value(&self) -> (&K, &T) {
         debug_assert!(!self.heap.is_empty());
         // SAFE: PeekMut is only instantiated for non-empty heaps
@@ -436,7 +435,7 @@ impl<K: Clone, T: Clone, C: Clone> Clone for BinaryHeap<K, T, C> {
         BinaryHeap {
             data: self.data.clone(),
             cmp: self.cmp.clone(),
-            indices: self.indices.clone(),
+            keys: self.keys.clone(),
         }
     }
 
@@ -484,7 +483,7 @@ impl<K, T, C: Compare<T> + Default> BinaryHeap<K, T, C> {
         BinaryHeap {
             data: Vec::new(),
             cmp: C::default(),
-            indices: HashMap::new(),
+            keys: HashMap::new(),
         }
     }
 
@@ -514,7 +513,7 @@ impl<K, T, C: Compare<T> + Default> BinaryHeap<K, T, C> {
         BinaryHeap {
             data: Vec::with_capacity(capacity),
             cmp: C::default(),
-            indices: HashMap::with_capacity(capacity),
+            keys: HashMap::with_capacity(capacity),
         }
     }
 }
@@ -669,7 +668,53 @@ where
     }
 }
 
-impl<K, T, C: Compare<T>> BinaryHeap<K, T, C> {
+impl<K: Hash + Eq + Clone, T, C: Compare<T>> BinaryHeap<K, T, C> {
+    /**
+    Pushes an item onto the binary heap.
+
+    # Examples
+
+    Basic usage:
+
+    ```
+    use mut_binary_heap::BinaryHeap;
+    let mut heap = BinaryHeap::new();
+    heap.push(3);
+    heap.push(5);
+    heap.push(1);
+
+    assert_eq!(heap.len(), 3);
+    assert_eq!(heap.peek(), Some(&5));
+    ```
+
+    # Time complexity
+
+    The expected cost of `push`, averaged over every possible ordering of
+    the elements being pushed, and over a sufficiently large number of
+    pushes, is *O*(1). This is the most meaningful cost metric when pushing
+    elements that are *not* already in any sorted pattern.
+
+    The time complexity degrades if elements are pushed in predominantly
+    ascending order. In the worst case, elements are pushed in ascending
+    sorted order and the amortized cost per push is *O*(log(*n*)) against a heap
+    containing *n* elements.
+
+    The worst case cost of a *single* call to `push` is *O*(*n*). The worst case
+    occurs when capacity is exhausted and needs a resize. The resize cost
+    has been amortized in the previous figures.
+    */
+    // #[stable(feature = "rust1", since = "1.0.0")]
+    pub fn push(&mut self, key: K, item: T) {
+        let old_len = self.len();
+        self.data.push((key.clone(), item));
+        self.keys.insert(key, old_len);
+        // SAFETY: Since we pushed a new item it means that
+        //  old_len = self.len() - 1 < self.len()
+        unsafe { self.sift_up(0, old_len) };
+    }
+}
+
+impl<K: Hash + Eq, T, C: Compare<T>> BinaryHeap<K, T, C> {
     /// Replaces the comparator of binary heap.
     ///
     /// # Examples
@@ -786,56 +831,16 @@ impl<K, T, C: Compare<T>> BinaryHeap<K, T, C> {
     }
 
     pub fn pop_with_key(&mut self) -> Option<(K, T)> {
-        self.data.pop().map(|mut item| {
+        let item = self.data.pop().map(|mut item| {
             if !self.is_empty() {
                 swap(&mut item, &mut self.data[0]);
                 // SAFETY: !self.is_empty() means that self.len() > 0
                 unsafe { self.sift_down_to_bottom(0) };
             }
             item
-        })
-    }
-
-    /// Pushes an item onto the binary heap.
-    ///
-    /// # Examples
-    ///
-    /// Basic usage:
-    ///
-    /// ```
-    /// use mut_binary_heap::BinaryHeap;
-    /// let mut heap = BinaryHeap::new();
-    /// heap.push(3);
-    /// heap.push(5);
-    /// heap.push(1);
-    ///
-    /// assert_eq!(heap.len(), 3);
-    /// assert_eq!(heap.peek(), Some(&5));
-    /// ```
-    ///
-    /// # Time complexity
-    ///
-    /// The expected cost of `push`, averaged over every possible ordering of
-    /// the elements being pushed, and over a sufficiently large number of
-    /// pushes, is *O*(1). This is the most meaningful cost metric when pushing
-    /// elements that are *not* already in any sorted pattern.
-    ///
-    /// The time complexity degrades if elements are pushed in predominantly
-    /// ascending order. In the worst case, elements are pushed in ascending
-    /// sorted order and the amortized cost per push is *O*(log(*n*)) against a heap
-    /// containing *n* elements.
-    ///
-    /// The worst case cost of a *single* call to `push` is *O*(*n*). The worst case
-    /// occurs when capacity is exhausted and needs a resize. The resize cost
-    /// has been amortized in the previous figures.
-    // #[stable(feature = "rust1", since = "1.0.0")]
-    pub fn push(&mut self, key: K, item: T) {
-        let old_len = self.len();
-        self.data.push((key, item));
-        // FIXME: handle key (push)
-        // SAFETY: Since we pushed a new item it means that
-        //  old_len = self.len() - 1 < self.len()
-        unsafe { self.sift_up(0, old_len) };
+        });
+        item.as_ref().and_then(|kv| self.keys.remove(&kv.0));
+        item
     }
 
     /// Consumes the `BinaryHeap` and returns a vector in sorted
@@ -893,7 +898,7 @@ impl<K, T, C: Compare<T>> BinaryHeap<K, T, C> {
     unsafe fn sift_up(&mut self, start: usize, pos: usize) -> usize {
         // Take out the value at `pos` and create a hole.
         // SAFETY: The caller guarantees that pos < self.len()
-        let mut hole = unsafe { Hole::new(&mut self.data, pos) };
+        let mut hole = unsafe { Hole::new(&mut self.data, &mut self.keys, pos) };
 
         while hole.pos() > start {
             let parent = (hole.pos() - 1) / 2;
@@ -924,7 +929,7 @@ impl<K, T, C: Compare<T>> BinaryHeap<K, T, C> {
     /// The caller must guarantee that `pos < end <= self.len()`.
     unsafe fn sift_down_range(&mut self, pos: usize, end: usize) {
         // SAFETY: The caller guarantees that pos < end <= self.len().
-        let mut hole = unsafe { Hole::new(&mut self.data, pos) };
+        let mut hole = unsafe { Hole::new(&mut self.data, &mut self.keys, pos) };
         let mut child = 2 * hole.pos() + 1;
 
         // Loop invariant: child == 2 * hole.pos() + 1.
@@ -990,7 +995,7 @@ impl<K, T, C: Compare<T>> BinaryHeap<K, T, C> {
         let start = pos;
 
         // SAFETY: The caller guarantees that pos < self.len().
-        let mut hole = unsafe { Hole::new(&mut self.data, pos) };
+        let mut hole = unsafe { Hole::new(&mut self.data, &mut self.keys, pos) };
         let mut child = 2 * hole.pos() + 1;
 
         // Loop invariant: child == 2 * hole.pos() + 1.
@@ -1414,7 +1419,7 @@ impl<K: Hash + Eq + Serialize, T: Serialize, C: Serialize> Serialize for BinaryH
         let mut state = serializer.serialize_struct("BinaryHeap", 3)?;
         state.serialize_field("data", &self.data)?;
         state.serialize_field("cmp", &self.cmp)?;
-        state.serialize_field("indices", &self.indices)?;
+        state.serialize_field("indices", &self.keys)?;
         state.end()
     }
 }
@@ -1502,7 +1507,11 @@ impl<'de, K: Hash + Eq + Deserialize<'de>, T: Deserialize<'de>, C: Deserialize<'
                     .next_element()?
                     .ok_or_else(|| de::Error::invalid_length(2, &self))?;
 
-                Ok(BinaryHeap { data, cmp, indices })
+                Ok(BinaryHeap {
+                    data,
+                    cmp,
+                    keys: indices,
+                })
             }
 
             fn visit_map<V>(self, mut map: V) -> Result<Self::Value, V::Error>
@@ -1554,23 +1563,26 @@ impl<'de, K: Hash + Eq + Deserialize<'de>, T: Deserialize<'de>, C: Deserialize<'
 /// (because it was moved from or duplicated).
 /// In drop, `Hole` will restore the slice by filling the hole
 /// position with the value that was originally removed.
-struct Hole<'a, K, T: 'a> {
+struct Hole<'a, K: Hash + Eq, T: 'a> {
     data: &'a mut [(K, T)],
+    keys: &'a mut HashMap<K, usize>,
     elt: ManuallyDrop<(K, T)>,
     pos: usize,
 }
 
-impl<'a, K, T> Hole<'a, K, T> {
+impl<'a, K: Hash + Eq, T> Hole<'a, K, T> {
     /// Create a new `Hole` at index `pos`.
     ///
     /// Unsafe because pos must be within the data slice.
     #[inline]
-    unsafe fn new(data: &'a mut [(K, T)], pos: usize) -> Self {
+    unsafe fn new(data: &'a mut [(K, T)], keys: &'a mut HashMap<K, usize>, pos: usize) -> Self {
         debug_assert!(pos < data.len());
         // SAFE: pos should be inside the slice
         let elt = unsafe { ptr::read(data.get_unchecked(pos)) };
+        debug_assert!(keys.contains_key(&elt.0));
         Hole {
             data,
+            keys,
             elt: ManuallyDrop::new(elt),
             pos,
         }
@@ -1600,22 +1612,31 @@ impl<'a, K, T> Hole<'a, K, T> {
 
     /// Move hole to new location
     ///
-    /// Unsafe because index must be within the data slice and not equal to pos.
+    /// Unsafe because target_position must be within the data slice and not equal to pos.
     #[inline]
-    unsafe fn move_to(&mut self, index: usize) {
-        debug_assert!(index != self.pos);
-        debug_assert!(index < self.data.len());
+    unsafe fn move_to(&mut self, target_position: usize) {
+        debug_assert!(target_position != self.pos);
+        debug_assert!(target_position < self.data.len());
         unsafe {
             let ptr = self.data.as_mut_ptr();
-            let index_ptr: *const _ = ptr.add(index);
+            let target_ptr: *const _ = ptr.add(target_position);
+
+            // update target index in key map
+            let target_element: &(K, T) = &*target_ptr;
+            *self.keys.get_mut(&target_element.0).expect(
+                "Hole can only exist for key values pairs, that are already part of the heap.",
+            ) = self.pos;
+
+            // move target into hole
             let hole_ptr = ptr.add(self.pos);
-            ptr::copy_nonoverlapping(index_ptr, hole_ptr, 1);
+            ptr::copy_nonoverlapping(target_ptr, hole_ptr, 1);
         }
-        self.pos = index;
+        // update hole position
+        self.pos = target_position;
     }
 }
 
-impl<K, T> Drop for Hole<'_, K, T> {
+impl<K: Hash + Eq, T> Drop for Hole<'_, K, T> {
     #[inline]
     fn drop(&mut self) {
         // fill the hole again
@@ -1623,7 +1644,10 @@ impl<K, T> Drop for Hole<'_, K, T> {
             let pos = self.pos;
             ptr::copy_nonoverlapping(&*self.elt, self.data.get_unchecked_mut(pos), 1);
         }
-        // FIXME handle index
+        let key = &self.elt.0;
+        *self.keys.get_mut(key).expect(
+            "Hole can only exist for key values pairs, that are already part of the heap.",
+        ) = self.pos;
     }
 }
 
@@ -1753,7 +1777,7 @@ pub struct IntoIterSorted<K, T, C> {
 }
 
 // #[unstable(feature = "binary_heap_into_iter_sorted", issue = "59278")]
-impl<K, T, C: Compare<T>> Iterator for IntoIterSorted<K, T, C> {
+impl<K: Hash + Eq, T, C: Compare<T>> Iterator for IntoIterSorted<K, T, C> {
     type Item = T;
 
     #[inline]
@@ -2000,3 +2024,65 @@ impl<K, T, C> IntoIterator for BinaryHeap<K, T, C> {
 //         heap.data.get_unchecked(i)
 //     }
 // }
+
+#[cfg(test)]
+mod test {
+    use crate::BinaryHeap;
+    use std::collections::HashMap;
+    use std::hash::Hash;
+
+    fn assert_key_map_valid<K: Hash + Eq + Clone, T, C>(bh: &BinaryHeap<K, T, C>) {
+        let mut expected_keys = HashMap::new();
+        for (i, kv) in bh.data.iter().enumerate() {
+            expected_keys.insert(kv.0.clone(), i);
+        }
+
+        for key_index in &expected_keys {
+            let key = &key_index.0;
+            let index = *key_index.1;
+            assert!(bh.keys.contains_key(&key));
+            assert_eq!(bh.keys[key], index);
+        }
+        assert_eq!(bh.keys.len(), expected_keys.len());
+    }
+
+    #[test]
+    fn valid_key_map() {
+        // TODO why do I need to specify the type here? The compiler should be able to infer this
+        let mut heap: BinaryHeap<_, _> = BinaryHeap::new();
+
+        assert_key_map_valid(&heap);
+
+        heap.push(0, 0);
+
+        assert_key_map_valid(&heap);
+
+        heap.push(1, 10);
+        heap.push(2, 15);
+        heap.push(3, 5);
+        heap.push(4, 8);
+
+        assert_key_map_valid(&heap);
+
+        assert_eq!(heap.pop_with_key(), Some((2, 15)));
+
+        assert_key_map_valid(&heap);
+
+        assert_eq!(heap.pop_with_key(), Some((1, 10)));
+        assert_eq!(heap.pop_with_key(), Some((4, 8)));
+
+        heap.push(5, 2);
+
+        assert_key_map_valid(&heap);
+
+        assert_eq!(heap.pop_with_key(), Some((3, 5)));
+        assert_eq!(heap.pop_with_key(), Some((5, 2)));
+        assert_eq!(heap.pop_with_key(), Some((0, 0)));
+
+        assert_key_map_valid(&heap);
+
+        assert_eq!(heap.pop_with_key(), None);
+
+        assert_key_map_valid(&heap);
+    }
+}
