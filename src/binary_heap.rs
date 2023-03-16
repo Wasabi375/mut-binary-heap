@@ -429,6 +429,48 @@ impl<'a, K: Hash + Eq, T, C: Compare<T>> PeekMut<'_, K, T, C> {
     }
 }
 
+// TODO RefMut docs
+pub struct RefMut<'a, K: 'a + Hash + Eq, T: 'a, C: 'a> {
+    heap: &'a mut BinaryHeap<K, T, C>,
+    pos: usize,
+    key: &'a K,
+    removed: bool,
+}
+
+impl<K: fmt::Debug + Hash + Eq, T: fmt::Debug, C: Compare<T>> fmt::Debug for RefMut<'_, K, T, C> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_tuple("RefMut")
+            .field(&self.key)
+            .field(&self.heap.data.get(self.pos))
+            .finish()
+    }
+}
+
+impl<K: Hash + Eq, T, C> Drop for RefMut<'_, K, T, C> {
+    fn drop(&mut self) {
+        todo!()
+    }
+}
+
+impl<K: Hash + Eq, T, C> Deref for RefMut<'_, K, T, C> {
+    type Target = T;
+    fn deref(&self) -> &T {
+        &self.heap.data[self.pos].1
+    }
+}
+
+impl<K: Hash + Eq, T, C> DerefMut for RefMut<'_, K, T, C> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.heap.data[self.pos].1
+    }
+}
+
+impl<K: Hash + Eq, T, C> RefMut<'_, K, T, C> {
+    pub fn key(&self) -> &K {
+        self.key
+    }
+}
+
 // #[stable(feature = "rust1", since = "1.0.0")]
 impl<K: Clone, T: Clone, C: Clone> Clone for BinaryHeap<K, T, C> {
     fn clone(&self) -> Self {
