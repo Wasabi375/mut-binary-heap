@@ -981,6 +981,19 @@ impl<K: Hash + Eq, T, C: Compare<T>> BinaryHeap<K, T, C> {
     /// The key may be any borrowed form of the map's key type, but
     /// [Hash] and [Eq] on the borrowed form *must* match those for
     /// the key type.
+    ///
+    /// # Example
+    /// ```
+    /// use mut_binary_heap::BinaryHeap;
+    ///
+    /// // TODO I should not need to specify the type here?
+    /// let mut heap: BinaryHeap<i32, i32> = BinaryHeap::new();
+    /// heap.push(0, 5);
+    /// heap.push(1, 3);
+    ///
+    /// assert_eq!(heap.remove(&0), Some((0, 5)));
+    /// assert_eq!(heap.remove(&2), None);
+    /// ```
     pub fn remove(&mut self, key: &K) -> Option<(K, T)> {
         if let Some(pos) = self.keys.get(key).copied() {
             let item = self.data.pop().map(|mut item| {
