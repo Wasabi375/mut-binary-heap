@@ -959,6 +959,29 @@ impl<K: Hash + Eq, T, C: Compare<T>> BinaryHeap<K, T, C> {
         })
     }
 
+    /// Removes a key from the heap, returning the `(key, value)` if the key
+    /// was previously in the heap.
+    ///
+    /// The key may be any borrowed form of the map's key type, but
+    /// [Hash] and [Eq] on the borrowed form *must* match those for
+    /// the key type.
+    pub fn remove(&mut self, key: &K) -> Option<(K, T)> {
+        if let Some(pos) = self.keys.get(key).copied() {
+            let item = self.data.pop().map(|mut item| {
+                if !self.is_empty() && pos < self.data.len() {
+                    swap(&mut item, &mut self.data[pos]);
+                    // SAFETY: !self.is_empty && pos < self.data.len()
+                    unsafe { self.sift_down_to_bottom(pos) };
+                }
+                item
+            });
+            item.as_ref().and_then(|kv| self.keys.remove(&kv.0));
+            item
+        } else {
+            None
+        }
+    }
+
     /// Updates the binary heap after the value behind this key was modified.
     ///
     /// This is called by [push] if the key already existed and also by [RefMut].
