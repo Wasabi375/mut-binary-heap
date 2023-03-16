@@ -473,6 +473,14 @@ impl<K: Hash + Eq, T, C: Compare<T>> RefMut<'_, K, T, C> {
     pub fn key(&self) -> &K {
         self.key
     }
+
+    pub fn key_value(&self) -> (&K, &T) {
+        (self.key, self)
+    }
+
+    pub fn key_value_mut(&mut self) -> (&K, &mut T) {
+        (self.key, self)
+    }
 }
 
 // #[stable(feature = "rust1", since = "1.0.0")]
