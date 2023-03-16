@@ -482,7 +482,10 @@ impl<K: Clone, T: Clone, C: Clone> Clone for BinaryHeap<K, T, C> {
     }
 
     fn clone_from(&mut self, source: &Self) {
+        // TODO unit test
         self.data.clone_from(&source.data);
+        self.keys.clone_from(&source.keys);
+        self.cmp = source.cmp.clone();
     }
 }
 
