@@ -756,6 +756,13 @@ impl<K: Hash + Eq + Clone, T, C: Compare<T>> BinaryHeap<K, T, C> {
     /**
     Pushes an item onto the binary heap.
 
+    If the heap did not have this key present, [None] is returned.
+
+    If the heap did have this key present, the value is updated, and the old
+    value is returned. The key is not updated, though; this matters for
+    types that can be `==` without being identical. For more information see
+    the documentation of [HashMap::insert].
+
     # Examples
 
     Basic usage:
@@ -788,13 +795,25 @@ impl<K: Hash + Eq + Clone, T, C: Compare<T>> BinaryHeap<K, T, C> {
     has been amortized in the previous figures.
     */
     // #[stable(feature = "rust1", since = "1.0.0")]
-    pub fn push(&mut self, key: K, item: T) {
-        let old_len = self.len();
-        self.data.push((key.clone(), item));
-        self.keys.insert(key, old_len);
-        // SAFETY: Since we pushed a new item it means that
-        //  old_len = self.len() - 1 < self.len()
-        unsafe { self.sift_up(0, old_len) };
+    pub fn push(&mut self, key: K, item: T) -> Option<T> {
+        if let Some(pos) = self.keys.get(&key).copied() {
+            let mut old = std::mem::replace(&mut self.data[pos], (key, item));
+            // NOTE: the second swap is required in order to keep the guarantee
+            // that the key is not replaced by a second push.
+            // I would prefer replacing the key, but that is not supported by
+            // [HashMap]
+            std::mem::swap(&mut old.0, &mut self.data[pos].0);
+            self.update(&old.0);
+            Some(old.1)
+        } else {
+            let old_len = self.len();
+            self.data.push((key.clone(), item));
+            self.keys.insert(key, old_len);
+            // SAFETY: Since we pushed a new item it means that
+            //  old_len = self.len() - 1 < self.len()
+            unsafe { self.sift_up(0, old_len) };
+            None
+        }
     }
 }
 
@@ -925,6 +944,30 @@ impl<K: Hash + Eq, T, C: Compare<T>> BinaryHeap<K, T, C> {
         });
         item.as_ref().and_then(|kv| self.keys.remove(&kv.0));
         item
+    }
+
+    pub fn contains_key(&self, key: &K) -> bool {
+        self.keys.contains_key(key)
+    }
+
+    pub fn get(&self, key: &K) -> Option<&T> {
+        self.keys.get(key).map(|index| &self.data[*index].1)
+    }
+
+    pub fn get_mut<'a>(&'a mut self, key: &'a K) -> Option<RefMut<'a, K, T, C>> {
+        self.keys.get(key).copied().map(|pos| RefMut {
+            heap: self,
+            pos,
+            key,
+            removed: false,
+        })
+    }
+
+    /// Updates the binary heap after the value behind this key was modified.
+    ///
+    /// This is called by [push] if the key already existed and also by [RefMut].
+    pub fn update(&mut self, key: &K) {
+        todo!()
     }
 
     /// Consumes the `BinaryHeap` and returns a vector in sorted
