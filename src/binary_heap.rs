@@ -962,8 +962,19 @@ impl<K: Hash + Eq, T, C: Compare<T>> BinaryHeap<K, T, C> {
     /// Updates the binary heap after the value behind this key was modified.
     ///
     /// This is called by [push] if the key already existed and also by [RefMut].
+    ///
+    /// This function will panic if the key is not part of the binary heap.
+    /// A none panicing alternative is to check with [BinaryHeap::contains_key]
+    /// or using [BinaryHeap::get_mut] instead.
     pub fn update(&mut self, key: &K) {
-        todo!()
+        let pos = self.keys[key];
+        let pos_after_sift_up = unsafe { self.sift_up(0, pos) };
+        if pos_after_sift_up != pos {
+            return;
+        }
+        unsafe {
+            self.sift_down(pos);
+        }
     }
 
     /// Consumes the `BinaryHeap` and returns a vector in sorted
