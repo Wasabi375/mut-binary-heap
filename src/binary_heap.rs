@@ -1710,9 +1710,9 @@ impl<'de, K: Hash + Eq + Deserialize<'de>, T: Deserialize<'de>, C: Deserialize<'
                     }
                 }
 
-                let data = data.or_else(|| de::Error::missing_field("data"));
-                let cmp = cmp.or_else(|| de::Error::missing_field("cmp"));
-                let keys = keys.or_else(|| de::Error::missing_field("keys"));
+                let data = data.ok_or_else(|| de::Error::missing_field("data"))?;
+                let cmp = cmp.ok_or_else(|| de::Error::missing_field("cmp"))?;
+                let keys = keys.ok_or_else(|| de::Error::missing_field("keys"))?;
 
                 Ok(BinaryHeap { data, cmp, keys })
             }
