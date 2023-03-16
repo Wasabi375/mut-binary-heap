@@ -414,11 +414,11 @@ impl<'a, K: Hash + Eq, T, C: Compare<T>> PeekMut<'_, K, T, C> {
 }
 
 // TODO RefMut docs
-pub struct RefMut<'a, K: 'a + Hash + Eq, T: 'a, C: 'a> {
+pub struct RefMut<'a, K: 'a + Hash + Eq, T: 'a, C: 'a + Compare<T>> {
     heap: &'a mut BinaryHeap<K, T, C>,
     pos: usize,
     key: &'a K,
-    removed: bool,
+    removed: bool, // TODO
 }
 
 impl<K: fmt::Debug + Hash + Eq, T: fmt::Debug, C: Compare<T>> fmt::Debug for RefMut<'_, K, T, C> {
@@ -430,26 +430,30 @@ impl<K: fmt::Debug + Hash + Eq, T: fmt::Debug, C: Compare<T>> fmt::Debug for Ref
     }
 }
 
-impl<K: Hash + Eq, T, C> Drop for RefMut<'_, K, T, C> {
+impl<K: Hash + Eq, T, C: Compare<T>> Drop for RefMut<'_, K, T, C> {
     fn drop(&mut self) {
-        todo!()
+        if self.removed {
+            todo!("Remove RefMut not implemented")
+        } else {
+            self.heap.update(self.key);
+        }
     }
 }
 
-impl<K: Hash + Eq, T, C> Deref for RefMut<'_, K, T, C> {
+impl<K: Hash + Eq, T, C: Compare<T>> Deref for RefMut<'_, K, T, C> {
     type Target = T;
     fn deref(&self) -> &T {
         &self.heap.data[self.pos].1
     }
 }
 
-impl<K: Hash + Eq, T, C> DerefMut for RefMut<'_, K, T, C> {
+impl<K: Hash + Eq, T, C: Compare<T>> DerefMut for RefMut<'_, K, T, C> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.heap.data[self.pos].1
     }
 }
 
-impl<K: Hash + Eq, T, C> RefMut<'_, K, T, C> {
+impl<K: Hash + Eq, T, C: Compare<T>> RefMut<'_, K, T, C> {
     pub fn key(&self) -> &K {
         self.key
     }
