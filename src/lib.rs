@@ -131,23 +131,23 @@ mod from_liballoc {
     // use std::collections::BinaryHeap;
     // use std::collections::binary_heap::{Drain, PeekMut};
 
-    // #[test]
-    // fn test_iterator() {
-    //     let data = vec![5, 9, 3];
-    //     let iterout = [9, 5, 3];
-    //     let heap = BinaryHeap::from(data);
-    //     let mut i = 0;
-    //     for el in &heap {
-    //         assert_eq!(*el, iterout[i]);
-    //         i += 1;
-    //     }
-    // }
+    #[test]
+    fn test_iterator() {
+        let data = vec![5, 9, 3];
+        let iterout = [9, 5, 3];
+        let heap = BinaryHeap::<_, _>::from(data, |k| k.clone());
+        let mut i = 0;
+        for el in &heap {
+            assert_eq!(*el.1, iterout[i]);
+            i += 1;
+        }
+    }
 
     // #[test]
     // fn test_iterator_reverse() {
     //     let data = vec![5, 9, 3];
     //     let iterout = vec![3, 5, 9];
-    //     let pq = BinaryHeap::from(data);
+    //     let pq = BinaryHeap::<_, _>::from(data, |k| k.clone());
 
     //     let v: Vec<_> = pq.iter().rev().cloned().collect();
     //     assert_eq!(v, iterout);
@@ -157,34 +157,34 @@ mod from_liballoc {
     // fn test_move_iter() {
     //     let data = vec![5, 9, 3];
     //     let iterout = vec![9, 5, 3];
-    //     let pq = BinaryHeap::from(data);
+    //     let pq = BinaryHeap::<_, _>::from(data, |k| k.clone());
 
     //     let v: Vec<_> = pq.into_iter().collect();
     //     assert_eq!(v, iterout);
     // }
 
-    // #[test]
-    // fn test_move_iter_size_hint() {
-    //     let data = vec![5, 9];
-    //     let pq = BinaryHeap::from(data);
+    #[test]
+    fn test_move_iter_size_hint() {
+        let data = vec![5, 9];
+        let pq = BinaryHeap::<_, _>::from(data, |k| k.clone());
 
-    //     let mut it = pq.into_iter();
+        let mut it = pq.into_iter();
 
-    //     assert_eq!(it.size_hint(), (2, Some(2)));
-    //     assert_eq!(it.next(), Some(9));
+        assert_eq!(it.size_hint(), (2, Some(2)));
+        assert_eq!(it.next(), Some((9, 9)));
 
-    //     assert_eq!(it.size_hint(), (1, Some(1)));
-    //     assert_eq!(it.next(), Some(5));
+        assert_eq!(it.size_hint(), (1, Some(1)));
+        assert_eq!(it.next(), Some((5, 5)));
 
-    //     assert_eq!(it.size_hint(), (0, Some(0)));
-    //     assert_eq!(it.next(), None);
-    // }
+        assert_eq!(it.size_hint(), (0, Some(0)));
+        assert_eq!(it.next(), None);
+    }
 
     // #[test]
     // fn test_move_iter_reverse() {
     //     let data = vec![5, 9, 3];
     //     let iterout = vec![3, 5, 9];
-    //     let pq = BinaryHeap::from(data);
+    //     let pq = BinaryHeap::<_, _>::from(data, |k| k.clone());
 
     //     let v: Vec<_> = pq.into_iter().rev().collect();
     //     assert_eq!(v, iterout);
@@ -198,22 +198,22 @@ mod from_liballoc {
     //     assert_eq!(sorted, vec![10, 9, 8, 7, 6, 5, 4, 3, 2, 2, 1, 1, 0]);
     // }
 
-    // #[test]
-    // fn test_peek_and_pop() {
-    //     let data = vec![2, 4, 6, 2, 1, 8, 10, 3, 5, 7, 0, 9, 1];
-    //     let mut sorted = data.clone();
-    //     sorted.sort();
-    //     let mut heap = BinaryHeap::from(data);
-    //     while !heap.is_empty() {
-    //         assert_eq!(heap.peek().unwrap(), sorted.last().unwrap());
-    //         assert_eq!(heap.pop().unwrap(), sorted.pop().unwrap());
-    //     }
-    // }
+    #[test]
+    fn test_peek_and_pop() {
+        let data = vec![2, 4, 6, 2, 1, 8, 10, 3, 5, 7, 0, 9, 1];
+        let mut sorted = data.clone();
+        sorted.sort();
+        let mut heap = BinaryHeap::<_, _>::from(data, |k| k.clone());
+        while !heap.is_empty() {
+            assert_eq!(heap.peek().unwrap(), sorted.last().unwrap());
+            assert_eq!(heap.pop().unwrap(), sorted.pop().unwrap());
+        }
+    }
 
     // #[test]
     // fn test_peek_mut() {
     //     let data = vec![2, 4, 6, 2, 1, 8, 10, 3, 5, 7, 0, 9, 1];
-    //     let mut heap = BinaryHeap::from(data);
+    //     let mut heap = BinaryHeap::<_, _>::from(data, |k| k.clone());
     //     assert_eq!(heap.peek(), Some(&10));
     //     {
     //         let mut top = heap.peek_mut().unwrap();
@@ -225,7 +225,7 @@ mod from_liballoc {
     // #[test]
     // fn test_peek_mut_pop() {
     //     let data = vec![2, 4, 6, 2, 1, 8, 10, 3, 5, 7, 0, 9, 1];
-    //     let mut heap = BinaryHeap::from(data);
+    //     let mut heap = BinaryHeap::<_, _>::from(data, |k| k.clone());
     //     assert_eq!(heap.peek(), Some(&10));
     //     {
     //         let mut top = heap.peek_mut().unwrap();
