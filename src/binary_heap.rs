@@ -2060,6 +2060,11 @@ impl<K, T> Iterator for IntoIter<K, T> {
     fn next(&mut self) -> Option<Self::Item> {
         self.iter.next()
     }
+
+    #[inline]
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.iter.size_hint()
+    }
 }
 
 #[derive(Clone)]
@@ -2072,6 +2077,11 @@ impl<K, V> Iterator for IntoValues<K, V> {
 
     fn next(&mut self) -> Option<Self::Item> {
         self.iter.next().map(|kv| kv.1)
+    }
+
+    #[inline]
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.iter.size_hint()
     }
 }
 
@@ -2086,6 +2096,11 @@ impl<K, V> Iterator for IntoKeys<K, V> {
     fn next(&mut self) -> Option<Self::Item> {
         self.iter.next().map(|kv| kv.0)
     }
+
+    #[inline]
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.iter.size_hint()
+    }
 }
 
 #[derive(Clone)]
@@ -2098,6 +2113,19 @@ impl<'a, K, T> Iterator for RefIter<'a, K, T> {
 
     fn next(&mut self) -> Option<Self::Item> {
         self.iter.next().map(|kv| (&kv.0, &kv.1))
+    }
+
+    #[inline]
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.iter.size_hint()
+    }
+
+    #[inline]
+    fn last(self) -> Option<Self::Item>
+    where
+        Self: Sized,
+    {
+        self.iter.last().map(|kv| (&kv.0, &kv.1))
     }
 }
 
@@ -2118,6 +2146,19 @@ impl<'a, K, T> Iterator for RefValues<'a, K, T> {
     fn next(&mut self) -> Option<Self::Item> {
         self.iter.next().map(|kv| &kv.1)
     }
+
+    #[inline]
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.iter.size_hint()
+    }
+
+    #[inline]
+    fn last(self) -> Option<Self::Item>
+    where
+        Self: Sized,
+    {
+        self.iter.last().map(|kv| (&kv.1))
+    }
 }
 
 #[derive(Clone)]
@@ -2130,6 +2171,19 @@ impl<'a, K, T> Iterator for RefKeys<'a, K, T> {
 
     fn next(&mut self) -> Option<Self::Item> {
         self.iter.next().map(|kv| &kv.0)
+    }
+
+    #[inline]
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.iter.size_hint()
+    }
+
+    #[inline]
+    fn last(self) -> Option<Self::Item>
+    where
+        Self: Sized,
+    {
+        self.iter.last().map(|kv| (&kv.0))
     }
 }
 
@@ -2181,6 +2235,11 @@ impl<'a, K: Hash + Eq, T, C: Compare<T>> Iterator for MutRefIter<'a, K, T, C> {
         } else {
             None
         }
+    }
+
+    #[inline]
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.iter.size_hint()
     }
 }
 
