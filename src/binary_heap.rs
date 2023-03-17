@@ -558,6 +558,15 @@ impl<K: Hash + Eq, T, C: Compare<T> + Default> BinaryHeap<K, T, C> {
     }
 }
 
+impl<K: Hash + Eq + Clone, T, C: Compare<T> + Default> BinaryHeap<K, T, C> {
+    pub fn from<I: IntoIterator<Item = T>, F: Fn(&T) -> K>(values: I, key_selector: F) -> Self {
+        values
+            .into_iter()
+            .map(|value| (key_selector(&value), value))
+            .collect()
+    }
+}
+
 impl<K: Hash + Eq, T, C: Compare<T>> BinaryHeap<K, T, C> {
     #[must_use]
     pub unsafe fn new_from_data_raw(
@@ -694,7 +703,8 @@ where
 {
     /// Creates an empty `BinaryHeap`.
     ///
-    /// The `_by_key()` version will create a heap ordered by key converted by given closure.
+    /// The `_by_sort_key()` version will create a heap ordered by
+    /// key converted by given closure.
     ///
     /// # Examples
     ///
@@ -709,7 +719,7 @@ where
     /// assert_eq!(heap.pop(), Some(3));
     /// ```
     #[must_use]
-    pub fn new_by_key(f: F) -> Self {
+    pub fn new_by_sort_key(f: F) -> Self {
         unsafe {
             BinaryHeap::new_from_data_raw(Vec::new(), HashMap::new(), KeyComparator(f), false)
         }
@@ -720,7 +730,8 @@ where
     /// so that the `BinaryHeap` does not have to be reallocated
     /// until it contains at least that many values.
     ///
-    /// The `_by_key()` version will create a heap ordered by key coverted by given closure.
+    /// The `_by_sort_key()` version will create a heap ordered by
+    /// key coverted by given closure.
     ///
     /// # Examples
     ///
@@ -736,7 +747,7 @@ where
     /// assert_eq!(heap.pop(), Some(3));
     /// ```
     #[must_use]
-    pub fn with_capacity_by_key(capacity: usize, f: F) -> Self {
+    pub fn with_capacity_by_sort_key(capacity: usize, f: F) -> Self {
         unsafe {
             BinaryHeap::new_from_data_raw(
                 Vec::with_capacity(capacity),
@@ -1949,7 +1960,25 @@ impl<T> DoubleEndedIterator for Drain<'_, T> {
 // }
 
 // #[stable(feature = "rust1", since = "1.0.0")]
-impl<K: Hash + Eq + Clone, T: Ord> FromIterator<(K, T)> for BinaryHeap<K, T> {
+// impl<K: Hash + Eq + Clone, T: Ord> FromIterator<(K, T)> for BinaryHeap<K, T> {
+//     fn from_iter<I: IntoIterator<Item = (K, T)>>(iter: I) -> Self {
+//         let iter = iter.into_iter();
+//         let size_hint = iter.size_hint().0;
+
+//         let mut heap = BinaryHeap::with_capacity(size_hint);
+
+//         for (key, value) in iter {
+//             heap.data.push((key.clone(), value));
+//             heap.keys.insert(key, heap.data.len() - 1);
+//         }
+//         heap.rebuild();
+//         heap
+//     }
+// }
+
+impl<K: Hash + Eq + Clone, T, C: Compare<T> + Default> FromIterator<(K, T)>
+    for BinaryHeap<K, T, C>
+{
     fn from_iter<I: IntoIterator<Item = (K, T)>>(iter: I) -> Self {
         let iter = iter.into_iter();
         let size_hint = iter.size_hint().0;
