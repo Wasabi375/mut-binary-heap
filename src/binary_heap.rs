@@ -153,7 +153,7 @@
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::hash::Hash;
-use std::slice;
+use std::slice::Iter;
 // use std::iter::FusedIterator;
 // use std::vec::Drain;
 use compare::Compare;
@@ -1293,9 +1293,21 @@ impl<K, T, C> BinaryHeap<K, T, C> {
     /// }
     /// ```
     // #[stable(feature = "rust1", since = "1.0.0")]
-    pub fn iter(&self) -> Iter<'_, (K, T)> {
-        Iter {
+    pub fn iter(&self) -> RefIter<'_, K, T> {
+        RefIter {
             iter: self.data.iter(),
+        }
+    }
+
+    pub fn into_values(self) -> IntoValues<K, T> {
+        IntoValues {
+            iter: self.data.into_iter(),
+        }
+    }
+
+    pub fn into_keys(self) -> IntoKeys<K, T> {
+        IntoKeys {
+            iter: self.data.into_iter(),
         }
     }
 
@@ -1822,124 +1834,6 @@ impl<K: Hash + Eq, T> Drop for Hole<'_, K, T> {
     }
 }
 
-/// An iterator over the elements of a `BinaryHeap`.
-///
-/// This `struct` is created by [`BinaryHeap::iter()`]. See its
-/// documentation for more.
-#[must_use = "iterators are lazy and do nothing unless consumed"]
-// #[stable(feature = "rust1", since = "1.0.0")]
-pub struct Iter<'a, T: 'a> {
-    iter: slice::Iter<'a, T>,
-}
-
-// #[stable(feature = "collection_debug", since = "1.17.0")]
-impl<T: fmt::Debug> fmt::Debug for Iter<'_, T> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_tuple("Iter").field(&self.iter.as_slice()).finish()
-    }
-}
-
-// FIXME(#26925) Remove in favor of `#[derive(Clone)]`
-// #[stable(feature = "rust1", since = "1.0.0")]
-impl<T> Clone for Iter<'_, T> {
-    fn clone(&self) -> Self {
-        Iter {
-            iter: self.iter.clone(),
-        }
-    }
-}
-
-// #[stable(feature = "rust1", since = "1.0.0")]
-impl<'a, T> Iterator for Iter<'a, T> {
-    type Item = &'a T;
-
-    #[inline]
-    fn next(&mut self) -> Option<&'a T> {
-        self.iter.next()
-    }
-
-    #[inline]
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        self.iter.size_hint()
-    }
-
-    #[inline]
-    fn last(self) -> Option<&'a T> {
-        self.iter.last()
-    }
-}
-
-// #[stable(feature = "rust1", since = "1.0.0")]
-impl<'a, T> DoubleEndedIterator for Iter<'a, T> {
-    #[inline]
-    fn next_back(&mut self) -> Option<&'a T> {
-        self.iter.next_back()
-    }
-}
-
-// #[stable(feature = "rust1", since = "1.0.0")]
-// impl<'a, T> ExactSizeIterator for Iter<'a, T> {
-//     fn is_empty(&self) -> bool {
-//         self.iter.is_empty()
-//     }
-// }
-
-// #[stable(feature = "fused", since = "1.26.0")]
-// impl<'a, T> FusedIterator for Iter<'a, T> {}
-
-/// An owning iterator over the elements of a `BinaryHeap`.
-///
-/// This `struct` is created by [`BinaryHeap::into_iter()`]
-/// (provided by the [`IntoIterator`] trait). See its documentation for more.
-///
-/// [`IntoIterator`]: https://doc.rust-lang.org/stable/core/iter/trait.IntoIterator.html
-// #[stable(feature = "rust1", since = "1.0.0")]
-#[derive(Clone)]
-pub struct IntoIter<T> {
-    iter: vec::IntoIter<T>,
-}
-
-// #[stable(feature = "collection_debug", since = "1.17.0")]
-impl<T: fmt::Debug> fmt::Debug for IntoIter<T> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_tuple("IntoIter")
-            .field(&self.iter.as_slice())
-            .finish()
-    }
-}
-
-// #[stable(feature = "rust1", since = "1.0.0")]
-impl<T> Iterator for IntoIter<T> {
-    type Item = T;
-
-    #[inline]
-    fn next(&mut self) -> Option<T> {
-        self.iter.next()
-    }
-
-    #[inline]
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        self.iter.size_hint()
-    }
-}
-
-// #[stable(feature = "rust1", since = "1.0.0")]
-impl<T> DoubleEndedIterator for IntoIter<T> {
-    #[inline]
-    fn next_back(&mut self) -> Option<T> {
-        self.iter.next_back()
-    }
-}
-// #[stable(feature = "rust1", since = "1.0.0")]
-// impl<K, T> ExactSizeIterator for IntoIter<T> {
-//     fn is_empty(&self) -> bool {
-//         self.iter.is_empty()
-//     }
-// }
-
-// #[stable(feature = "fused", since = "1.26.0")]
-// impl<K, T> FusedIterator for IntoIter<T> {}
-
 #[must_use = "iterators are lazy and do nothing unless consumed"]
 // #[unstable(feature = "binary_heap_into_iter_sorted", issue = "59278")]
 #[derive(Clone, Debug)]
@@ -1949,7 +1843,7 @@ pub struct IntoIterSorted<K, T, C> {
 
 // #[unstable(feature = "binary_heap_into_iter_sorted", issue = "59278")]
 impl<K: Hash + Eq, T, C: Compare<T>> Iterator for IntoIterSorted<K, T, C> {
-    type Item = T;
+    type Item = T; // TODO should this be (K, T) insetad of T?
 
     #[inline]
     fn next(&mut self) -> Option<T> {
@@ -2042,18 +1936,26 @@ impl<T> DoubleEndedIterator for Drain<'_, T> {
 //     }
 // }
 
-// TODO from iterator
-// // #[stable(feature = "rust1", since = "1.0.0")]
-// impl<K, T: Ord> FromIterator<T> for BinaryHeap<K, T> {
-//     fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
-//         BinaryHeap::from(iter.into_iter().collect::<Vec<_>>())
-//     }
-// }
-
 // #[stable(feature = "rust1", since = "1.0.0")]
+impl<K: Hash + Eq + Clone, T: Ord> FromIterator<(K, T)> for BinaryHeap<K, T> {
+    fn from_iter<I: IntoIterator<Item = (K, T)>>(iter: I) -> Self {
+        let iter = iter.into_iter();
+        let size_hint = iter.size_hint().0;
+
+        let mut heap = BinaryHeap::with_capacity(size_hint);
+
+        for (key, value) in iter {
+            heap.data.push((key.clone(), value));
+            heap.keys.insert(key, heap.data.len() - 1);
+        }
+        heap.rebuild();
+        heap
+    }
+}
+
 impl<K, T, C> IntoIterator for BinaryHeap<K, T, C> {
     type Item = (K, T);
-    type IntoIter = IntoIter<Self::Item>;
+    type IntoIter = IntoIter<K, T>;
 
     /// Creates a consuming iterator, that is, one that moves each value out of
     /// the binary heap in arbitrary order. The binary heap cannot be used
@@ -2073,24 +1975,139 @@ impl<K, T, C> IntoIterator for BinaryHeap<K, T, C> {
     ///     println!("{}", x);
     /// }
     /// ```
-    fn into_iter(self) -> IntoIter<Self::Item> {
+    fn into_iter(self) -> IntoIter<K, T> {
         IntoIter {
             iter: self.data.into_iter(),
         }
     }
 }
 
-// #[stable(feature = "rust1", since = "1.0.0")]
-// TODO into_iter for ref
-// impl<'a, K, T, C> IntoIterator for &'a BinaryHeap<K, T, C> {
-//     type Item = (&'a K, &'a T);
-//     type IntoIter = Map<Iter<'a, &'a (K, T)>, impl FnMut<&'a (K, T)>>;
+// TODO implement Debug for Iterator types
+// TODO implement FusedIterator for Iterator types
 
-//     fn into_iter(self) -> Iter<'a, Self::Item> {
-//         let foo = self.iter().map(|kv| (&kv.0, &kv.1));
-//         foo
-//     }
-// }
+/// An owning iterator over the elements of a `BinaryHeap`.
+///
+/// This `struct` is created by [`BinaryHeap::into_iter()`]
+/// (provided by the [`IntoIterator`] trait). See its documentation for more.
+///
+/// [`IntoIterator`]: https://doc.rust-lang.org/stable/core/iter/trait.IntoIterator.html
+// #[stable(feature = "rust1", since = "1.0.0")]
+#[derive(Clone)]
+pub struct IntoIter<K, T> {
+    iter: vec::IntoIter<(K, T)>,
+}
+
+impl<K, T> Iterator for IntoIter<K, T> {
+    type Item = (K, T);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter.next()
+    }
+}
+
+#[derive(Clone)]
+pub struct IntoValues<K, V> {
+    iter: vec::IntoIter<(K, V)>,
+}
+
+impl<K, V> Iterator for IntoValues<K, V> {
+    type Item = V;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter.next().map(|kv| kv.1)
+    }
+}
+
+#[derive(Clone)]
+pub struct IntoKeys<K, V> {
+    iter: vec::IntoIter<(K, V)>,
+}
+
+impl<K, V> Iterator for IntoKeys<K, V> {
+    type Item = K;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter.next().map(|kv| kv.0)
+    }
+}
+
+#[derive(Clone)]
+pub struct RefIter<'a, K, T> {
+    iter: Iter<'a, (K, T)>,
+}
+
+impl<'a, K, T> Iterator for RefIter<'a, K, T> {
+    type Item = (&'a K, &'a T);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter.next().map(|kv| (&kv.0, &kv.1))
+    }
+}
+
+impl<'a, K, T> DoubleEndedIterator for RefIter<'a, K, T> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        self.iter.next_back().map(|kv| (&kv.0, &kv.1))
+    }
+}
+
+impl<'a, K, T, C> IntoIterator for &'a BinaryHeap<K, T, C> {
+    type Item = (&'a K, &'a T);
+    type IntoIter = RefIter<'a, K, T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+
+/// An Iterator that yields mutable references to the values in the heap.
+/// The heap will be rebuild after the iterator is droped.
+// NOTE: this can not implement Clone or we invalidate the mutability guarantee.
+pub struct MutRefIter<'a, K: Hash + Eq, T, C: Compare<T>> {
+    heap: *mut BinaryHeap<K, T, C>,
+    iter: Iter<'a, (K, T)>,
+}
+
+impl<'a, K: Hash + Eq, T, C: Compare<T>> IntoIterator for &'a mut BinaryHeap<K, T, C> {
+    type Item = (&'a K, &'a mut T);
+    type IntoIter = MutRefIter<'a, K, T, C>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        MutRefIter {
+            heap: self,
+            iter: self.data.iter(),
+        }
+    }
+}
+
+impl<'a, K: Hash + Eq, T, C: Compare<T>> Iterator for MutRefIter<'a, K, T, C> {
+    type Item = (&'a K, &'a mut T);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some(kv) = self.iter.next() {
+            let key = &kv.0;
+            let ptr: *const T = &kv.1 as *const T;
+            let mut_ptr: *mut T = ptr as *mut T;
+            // SAFTEY: We have mut access to the heap, because we are in a
+            //  MutRefIter which can only be constructed with a mut ref to the
+            //  heap.
+            //
+            //  We only give out a mut ref once per element in the heap, so this
+            //  reference has not been shared so it's unique.
+            let value = unsafe { &mut *mut_ptr };
+            Some((key, value))
+        } else {
+            None
+        }
+    }
+}
+
+impl<'a, K: Hash + Eq, T, C: Compare<T>> Drop for MutRefIter<'a, K, T, C> {
+    fn drop(&mut self) {
+        // SAFETY: MutRefIter was constructed from a valid mut reference
+        let heap = unsafe { &mut *self.heap };
+        heap.rebuild();
+    }
+}
 
 // #[stable(feature = "rust1", since = "1.0.0")]
 // TODO heap extension helpers
