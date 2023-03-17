@@ -1315,6 +1315,18 @@ impl<K, T, C> BinaryHeap<K, T, C> {
         }
     }
 
+    pub fn iter_values(&self) -> RefValues<'_, K, T> {
+        RefValues {
+            iter: self.data.iter(),
+        }
+    }
+
+    pub fn iter_keys(&self) -> RefKeys<'_, K, T> {
+        RefKeys {
+            iter: self.data.iter(),
+        }
+    }
+
     pub fn into_values(self) -> IntoValues<K, T> {
         IntoValues {
             iter: self.data.into_iter(),
@@ -2063,6 +2075,32 @@ impl<'a, K, T> Iterator for RefIter<'a, K, T> {
 impl<'a, K, T> DoubleEndedIterator for RefIter<'a, K, T> {
     fn next_back(&mut self) -> Option<Self::Item> {
         self.iter.next_back().map(|kv| (&kv.0, &kv.1))
+    }
+}
+
+#[derive(Clone)]
+pub struct RefValues<'a, K, T> {
+    iter: Iter<'a, (K, T)>,
+}
+
+impl<'a, K, T> Iterator for RefValues<'a, K, T> {
+    type Item = &'a T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter.next().map(|kv| &kv.1)
+    }
+}
+
+#[derive(Clone)]
+pub struct RefKeys<'a, K, T> {
+    iter: Iter<'a, (K, T)>,
+}
+
+impl<'a, K, T> Iterator for RefKeys<'a, K, T> {
+    type Item = &'a K;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter.next().map(|kv| &kv.0)
     }
 }
 
