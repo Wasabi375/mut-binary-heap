@@ -123,8 +123,12 @@ pub use crate::binary_heap::*;
 
 #[cfg(test)]
 mod from_liballoc {
-    // FIXME reenable tests
+    // TODO reenable tests
     // The following tests copyed from liballoc/tests/binary_heap.rs
+    // I can't fully confirm what the original authors meant by liballoc.
+    // However this is extremely similar to:
+    // https://github.com/rust-lang/rust/blob/master/library/alloc/src/collections/binary_heap/tests.rs
+    // TODO port tests that we are missing and mark commit hash for future reference
 
     use super::binary_heap::*;
     // use std::panic;
