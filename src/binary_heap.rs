@@ -153,6 +153,7 @@
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::hash::Hash;
+use std::marker::PhantomData;
 // use std::iter::FusedIterator;
 // use std::vec::Drain;
 use compare::Compare;
@@ -282,6 +283,7 @@ pub struct BinaryHeap<K, T, C = MaxComparator> {
     data: Vec<(K, T)>,
     cmp: C,
     keys: HashMap<K, usize>,
+    _not_sync: PhantomData<std::cell::Cell<()>>,
 }
 
 /// For `T` that implements `Ord`, you can use this struct to quickly
@@ -468,6 +470,7 @@ impl<K: Clone, T: Clone, C: Clone> Clone for BinaryHeap<K, T, C> {
             data: self.data.clone(),
             cmp: self.cmp.clone(),
             keys: self.keys.clone(),
+            _not_sync: PhantomData::default(),
         }
     }
 
@@ -579,7 +582,12 @@ impl<K: Hash + Eq, T, C: Compare<T>> BinaryHeap<K, T, C> {
         cmp: C,
         rebuild: bool,
     ) -> Self {
-        let mut heap = BinaryHeap { data, cmp, keys };
+        let mut heap = BinaryHeap {
+            data,
+            cmp,
+            keys,
+            _not_sync: PhantomData::default(),
+        };
         debug_assert!(heap.data.len() == heap.keys.len());
         if rebuild && !heap.data.is_empty() {
             heap.rebuild();
@@ -1714,7 +1722,12 @@ impl<'de, K: Hash + Eq + Deserialize<'de>, T: Deserialize<'de>, C: Deserialize<'
                     .next_element()?
                     .ok_or_else(|| de::Error::invalid_length(2, &self))?;
 
-                Ok(BinaryHeap { data, cmp, keys })
+                Ok(BinaryHeap {
+                    data,
+                    cmp,
+                    keys,
+                    _not_sync: PhantomData::default(),
+                })
             }
 
             fn visit_map<V>(self, mut map: V) -> Result<Self::Value, V::Error>
@@ -1751,7 +1764,12 @@ impl<'de, K: Hash + Eq + Deserialize<'de>, T: Deserialize<'de>, C: Deserialize<'
                 let cmp = cmp.ok_or_else(|| de::Error::missing_field("cmp"))?;
                 let keys = keys.ok_or_else(|| de::Error::missing_field("keys"))?;
 
-                Ok(BinaryHeap { data, cmp, keys })
+                Ok(BinaryHeap {
+                    data,
+                    cmp,
+                    keys,
+                    _not_sync: PhantomData::default(),
+                })
             }
         }
 
@@ -2346,6 +2364,14 @@ mod test {
     use crate::BinaryHeap;
     use std::collections::HashMap;
     use std::hash::Hash;
+
+    fn is_normal<T: Send + Unpin>() {}
+
+    #[test]
+    fn check_is_send_unpin() {
+        is_normal::<BinaryHeap<i64, i64>>();
+        assert!(true);
+    }
 
     fn assert_key_map_valid<K: Hash + Eq + Clone, T, C>(bh: &BinaryHeap<K, T, C>) {
         let mut expected_keys = HashMap::new();
