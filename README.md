@@ -33,7 +33,7 @@ The minimum supported Rust version is 1.56.0.
 # Changes
 
 See
-[CHANGELOG.md](https://github.com/Wasabi375/binary-heap-plus-rs/blob/master/CHANGELOG.md).
+[CHANGELOG.md](https://github.com/Wasabi375/mut-binary-heap/blob/master/CHANGELOG.md).
 
 
 # License
