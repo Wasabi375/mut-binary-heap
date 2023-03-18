@@ -434,7 +434,6 @@ pub struct RefMut<'a, K: 'a + Hash + Eq, T: 'a, C: 'a + Compare<T>> {
     heap: &'a mut BinaryHeap<K, T, C>,
     pos: usize,
     key: &'a K,
-    removed: bool, // TODO
 }
 
 impl<K: fmt::Debug + Hash + Eq, T: fmt::Debug, C: Compare<T>> fmt::Debug for RefMut<'_, K, T, C> {
@@ -448,11 +447,7 @@ impl<K: fmt::Debug + Hash + Eq, T: fmt::Debug, C: Compare<T>> fmt::Debug for Ref
 
 impl<K: Hash + Eq, T, C: Compare<T>> Drop for RefMut<'_, K, T, C> {
     fn drop(&mut self) {
-        if self.removed {
-            todo!("Remove RefMut not implemented")
-        } else {
-            self.heap.update(self.key);
-        }
+        self.heap.update(self.key);
     }
 }
 
@@ -982,7 +977,6 @@ impl<K: Hash + Eq, T, C: Compare<T>> BinaryHeap<K, T, C> {
             heap: self,
             pos,
             key,
-            removed: false,
         })
     }
 
@@ -1057,7 +1051,6 @@ impl<K: Hash + Eq, T, C: Compare<T>> BinaryHeap<K, T, C> {
     /// let vec = heap.into_sorted_vec();
     /// assert_eq!(vec, [1, 2, 3, 4, 5, 6, 7]);
     /// ```
-    // TODO into_sorted_vec
     // #[must_use = "`self` will be dropped if the result is not used"]
     // // #[stable(feature = "binary_heap_extras_15", since = "1.5.0")]
     // pub fn into_sorted_vec(mut self) -> Vec<T> {
@@ -1882,7 +1875,7 @@ pub struct IntoIterSorted<K, T, C> {
 
 // #[unstable(feature = "binary_heap_into_iter_sorted", issue = "59278")]
 impl<K: Hash + Eq, T, C: Compare<T>> Iterator for IntoIterSorted<K, T, C> {
-    type Item = T; // TODO should this be (K, T) insetad of T?
+    type Item = T; // TODO IntoIterSorted should return (K, T) and we need a variant for only keys or values
 
     #[inline]
     fn next(&mut self) -> Option<T> {
