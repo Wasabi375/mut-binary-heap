@@ -214,74 +214,75 @@ mod from_liballoc {
         }
     }
 
-    // #[test]
-    // fn test_peek_mut() {
-    //     let data = vec![2, 4, 6, 2, 1, 8, 10, 3, 5, 7, 0, 9, 1];
-    //     let mut heap = BinaryHeap::<_, _>::from(data, |k| k.clone());
-    //     assert_eq!(heap.peek(), Some(&10));
-    //     {
-    //         let mut top = heap.peek_mut().unwrap();
-    //         *top -= 2;
-    //     }
-    //     assert_eq!(heap.peek(), Some(&9));
-    // }
+    #[test]
+    fn test_peek_mut() {
+        let data = vec![2, 4, 6, 2, 1, 8, 10, 3, 5, 7, 0, 9, 1];
+        let mut heap = BinaryHeap::<_, _>::from(data, |k| k.clone());
+        assert_eq!(heap.peek(), Some(&10));
+        {
+            let mut top = heap.peek_mut().unwrap();
+            *top -= 2;
+        }
+        assert_eq!(heap.peek(), Some(&9));
+    }
 
-    // #[test]
-    // fn test_peek_mut_pop() {
-    //     let data = vec![2, 4, 6, 2, 1, 8, 10, 3, 5, 7, 0, 9, 1];
-    //     let mut heap = BinaryHeap::<_, _>::from(data, |k| k.clone());
-    //     assert_eq!(heap.peek(), Some(&10));
-    //     {
-    //         let mut top = heap.peek_mut().unwrap();
-    //         *top -= 2;
-    //         assert_eq!(PeekMut::pop(top), 8);
-    //     }
-    //     assert_eq!(heap.peek(), Some(&9));
-    // }
+    #[test]
+    fn test_peek_mut_pop() {
+        let data = vec![2, 4, 6, 2, 1, 8, 10, 3, 5, 7, 0, 9, 1];
+        let mut heap = BinaryHeap::<_, _>::from(data, |k| k.clone());
+        assert_eq!(heap.peek(), Some(&10));
+        {
+            let mut top = heap.peek_mut().unwrap();
+            *top -= 2;
+            assert_eq!(PeekMut::pop(top), 8);
+        }
+        assert_eq!(heap.peek(), Some(&9));
+    }
 
-    // #[test]
-    // fn test_push() {
-    //     let mut heap = BinaryHeap::from(vec![2, 4, 9]);
-    //     assert_eq!(heap.len(), 3);
-    //     assert!(*heap.peek().unwrap() == 9);
-    //     heap.push(11);
-    //     assert_eq!(heap.len(), 4);
-    //     assert!(*heap.peek().unwrap() == 11);
-    //     heap.push(5);
-    //     assert_eq!(heap.len(), 5);
-    //     assert!(*heap.peek().unwrap() == 11);
-    //     heap.push(27);
-    //     assert_eq!(heap.len(), 6);
-    //     assert!(*heap.peek().unwrap() == 27);
-    //     heap.push(3);
-    //     assert_eq!(heap.len(), 7);
-    //     assert!(*heap.peek().unwrap() == 27);
-    //     heap.push(103);
-    //     assert_eq!(heap.len(), 8);
-    //     assert!(*heap.peek().unwrap() == 103);
-    // }
+    #[test]
+    fn test_push() {
+        let mut heap = BinaryHeap::<_, _>::from(vec![2, 4, 9], |k| k.clone());
+        assert_eq!(heap.len(), 3);
+        assert!(*heap.peek().unwrap() == 9);
+        heap.push(11, 11);
+        assert_eq!(heap.len(), 4);
+        assert!(*heap.peek().unwrap() == 11);
+        heap.push(5, 5);
+        assert_eq!(heap.len(), 5);
+        assert!(*heap.peek().unwrap() == 11);
+        heap.push(27, 27);
+        assert_eq!(heap.len(), 6);
+        assert!(*heap.peek().unwrap() == 27);
+        heap.push(3, 3);
+        assert_eq!(heap.len(), 7);
+        assert!(*heap.peek().unwrap() == 27);
+        heap.push(103, 103);
+        assert_eq!(heap.len(), 8);
+        assert!(*heap.peek().unwrap() == 103);
+    }
 
-    // // #[test]
-    // // fn test_push_unique() {
-    // //     let mut heap = BinaryHeap::<Box<_>>::from(vec![box 2, box 4, box 9]);
-    // //     assert_eq!(heap.len(), 3);
-    // //     assert!(**heap.peek().unwrap() == 9);
-    // //     heap.push(box 11);
-    // //     assert_eq!(heap.len(), 4);
-    // //     assert!(**heap.peek().unwrap() == 11);
-    // //     heap.push(box 5);
-    // //     assert_eq!(heap.len(), 5);
-    // //     assert!(**heap.peek().unwrap() == 11);
-    // //     heap.push(box 27);
-    // //     assert_eq!(heap.len(), 6);
-    // //     assert!(**heap.peek().unwrap() == 27);
-    // //     heap.push(box 3);
-    // //     assert_eq!(heap.len(), 7);
-    // //     assert!(**heap.peek().unwrap() == 27);
-    // //     heap.push(box 103);
-    // //     assert_eq!(heap.len(), 8);
-    // //     assert!(**heap.peek().unwrap() == 103);
-    // // }
+    #[test]
+    fn test_push_unique() {
+        let data: Vec<Box<i32>> = [2, 4, 9].iter().map(|v| Box::new(*v)).collect();
+        let mut heap = BinaryHeap::<i32, Box<i32>>::from(data, |k| **k);
+        assert_eq!(heap.len(), 3);
+        assert!(**heap.peek().unwrap() == 9);
+        heap.push(11, Box::new(11));
+        assert_eq!(heap.len(), 4);
+        assert!(**heap.peek().unwrap() == 11);
+        heap.push(5, Box::new(5));
+        assert_eq!(heap.len(), 5);
+        assert!(**heap.peek().unwrap() == 11);
+        heap.push(27, Box::new(27));
+        assert_eq!(heap.len(), 6);
+        assert!(**heap.peek().unwrap() == 27);
+        heap.push(3, Box::new(3));
+        assert_eq!(heap.len(), 7);
+        assert!(**heap.peek().unwrap() == 27);
+        heap.push(103, Box::new(103));
+        assert_eq!(heap.len(), 8);
+        assert!(**heap.peek().unwrap() == 103);
+    }
 
     // fn check_to_vec(mut data: Vec<i32>) {
     //     let heap = BinaryHeap::from(data.clone());
@@ -293,23 +294,23 @@ mod from_liballoc {
     //     assert_eq!(heap.into_sorted_vec(), data);
     // }
 
-    // #[test]
-    // fn test_empty_pop() {
-    //     let mut heap = BinaryHeap::<i32>::new();
-    //     assert!(heap.pop().is_none());
-    // }
+    #[test]
+    fn test_empty_pop() {
+        let mut heap = BinaryHeap::<i32, i32>::new();
+        assert!(heap.pop().is_none());
+    }
 
-    // #[test]
-    // fn test_empty_peek() {
-    //     let empty = BinaryHeap::<i32>::new();
-    //     assert!(empty.peek().is_none());
-    // }
+    #[test]
+    fn test_empty_peek() {
+        let empty = BinaryHeap::<i32, i32>::new();
+        assert!(empty.peek().is_none());
+    }
 
-    // #[test]
-    // fn test_empty_peek_mut() {
-    //     let mut empty = BinaryHeap::<i32>::new();
-    //     assert!(empty.peek_mut().is_none());
-    // }
+    #[test]
+    fn test_empty_peek_mut() {
+        let mut empty = BinaryHeap::<i32, i32>::new();
+        assert!(empty.peek_mut().is_none());
+    }
 
     // #[test]
     // fn test_from_iter() {
@@ -426,85 +427,85 @@ mod from_liballoc {
     //
     // Destructors must be called exactly once per element.
     // FIXME: re-enable emscripten once it can unwind again
-    //     #[test]
-    //     #[cfg(not(target_os = "emscripten"))]
-    //     fn panic_safe() {
-    //         use std::cmp;
-    //         use std::panic::{self, AssertUnwindSafe};
-    //         use std::sync::atomic::{AtomicUsize, Ordering};
+    #[test]
+    #[cfg(not(target_os = "emscripten"))]
+    fn panic_safe() {
+        use std::cmp;
+        use std::panic::{self, AssertUnwindSafe};
+        use std::sync::atomic::{AtomicUsize, Ordering};
 
-    //         use rand::{seq::SliceRandom, thread_rng};
+        use rand::{seq::SliceRandom, thread_rng};
 
-    //         static DROP_COUNTER: AtomicUsize = AtomicUsize::new(0);
+        static DROP_COUNTER: AtomicUsize = AtomicUsize::new(0);
 
-    //         #[derive(Eq, PartialEq, PartialOrd, Clone, Debug)]
-    //         struct PanicOrd<T>(T, bool);
+        #[derive(Eq, PartialEq, PartialOrd, Clone, Debug)]
+        struct PanicOrd<T>(T, bool);
 
-    //         impl<T> Drop for PanicOrd<T> {
-    //             fn drop(&mut self) {
-    //                 // update global drop count
-    //                 DROP_COUNTER.fetch_add(1, Ordering::SeqCst);
-    //             }
-    //         }
+        impl<T> Drop for PanicOrd<T> {
+            fn drop(&mut self) {
+                // update global drop count
+                DROP_COUNTER.fetch_add(1, Ordering::SeqCst);
+            }
+        }
 
-    //         impl<T: Ord> Ord for PanicOrd<T> {
-    //             fn cmp(&self, other: &Self) -> cmp::Ordering {
-    //                 if self.1 || other.1 {
-    //                     panic!("Panicking comparison");
-    //                 }
-    //                 self.0.cmp(&other.0)
-    //             }
-    //         }
-    //         let mut rng = thread_rng();
-    //         const DATASZ: usize = 32;
-    //         // Miri is too slow
-    //         let ntest = if cfg!(miri) { 1 } else { 10 };
+        impl<T: Ord> Ord for PanicOrd<T> {
+            fn cmp(&self, other: &Self) -> cmp::Ordering {
+                if self.1 || other.1 {
+                    panic!("Panicking comparison");
+                }
+                self.0.cmp(&other.0)
+            }
+        }
+        let mut rng = thread_rng();
+        const DATASZ: usize = 32;
+        // Miri is too slow
+        let ntest = if cfg!(miri) { 1 } else { 10 };
 
-    //         // don't use 0 in the data -- we want to catch the zeroed-out case.
-    //         let data = (1..=DATASZ).collect::<Vec<_>>();
+        // don't use 0 in the data -- we want to catch the zeroed-out case.
+        let data = (1..=DATASZ).collect::<Vec<_>>();
 
-    //         // since it's a fuzzy test, run several tries.
-    //         for _ in 0..ntest {
-    //             for i in 1..=DATASZ {
-    //                 DROP_COUNTER.store(0, Ordering::SeqCst);
+        // since it's a fuzzy test, run several tries.
+        for _ in 0..ntest {
+            for i in 1..=DATASZ {
+                DROP_COUNTER.store(0, Ordering::SeqCst);
 
-    //                 let mut panic_ords: Vec<_> = data
-    //                     .iter()
-    //                     .filter(|&&x| x != i)
-    //                     .map(|&x| PanicOrd(x, false))
-    //                     .collect();
-    //                 let panic_item = PanicOrd(i, true);
+                let mut panic_ords: Vec<_> = data
+                    .iter()
+                    .filter(|&&x| x != i)
+                    .map(|&x| PanicOrd(x, false))
+                    .collect();
+                let panic_item = PanicOrd(i, true);
 
-    //                 // heapify the sane items
-    //                 panic_ords.shuffle(&mut rng);
-    //                 let mut heap = BinaryHeap::from(panic_ords);
-    //                 let inner_data;
+                // heapify the sane items
+                panic_ords.shuffle(&mut rng);
+                let mut heap = BinaryHeap::<_, _>::from(panic_ords, |p| p.0);
+                let inner_data: Vec<PanicOrd<usize>>;
 
-    //                 {
-    //                     // push the panicking item to the heap and catch the panic
-    //                     let thread_result = {
-    //                         let mut heap_ref = AssertUnwindSafe(&mut heap);
-    //                         panic::catch_unwind(move || {
-    //                             heap_ref.push(panic_item);
-    //                         })
-    //                     };
-    //                     assert!(thread_result.is_err());
+                {
+                    // push the panicking item to the heap and catch the panic
+                    let thread_result = {
+                        let mut heap_ref = AssertUnwindSafe(&mut heap);
+                        panic::catch_unwind(move || {
+                            heap_ref.push(panic_item.0, panic_item);
+                        })
+                    };
+                    assert!(thread_result.is_err());
 
-    //                     // Assert no elements were dropped
-    //                     let drops = DROP_COUNTER.load(Ordering::SeqCst);
-    //                     assert!(drops == 0, "Must not drop items. drops={}", drops);
-    //                     inner_data = heap.clone().into_vec();
-    //                     drop(heap);
-    //                 }
-    //                 let drops = DROP_COUNTER.load(Ordering::SeqCst);
-    //                 assert_eq!(drops, DATASZ);
+                    // Assert no elements were dropped
+                    let drops = DROP_COUNTER.load(Ordering::SeqCst);
+                    assert!(drops == 0, "Must not drop items. drops={}", drops);
+                    inner_data = heap.clone().into_values().collect();
+                    drop(heap);
+                }
+                let drops = DROP_COUNTER.load(Ordering::SeqCst);
+                assert_eq!(drops, DATASZ);
 
-    //                 let mut data_sorted = inner_data.into_iter().map(|p| p.0).collect::<Vec<_>>();
-    //                 data_sorted.sort();
-    //                 assert_eq!(data_sorted, data);
-    //             }
-    //         }
-    //     }
+                let mut data_sorted = inner_data.into_iter().map(|p| p.0).collect::<Vec<_>>();
+                data_sorted.sort();
+                assert_eq!(data_sorted, data);
+            }
+        }
+    }
 }
 
 #[cfg(feature = "serde")]
