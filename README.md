@@ -1,6 +1,9 @@
 # mut-binary-heap
 
-![Rust](https://github.com/sekineh/binary-heap-plus-rs/workflows/Rust/badge.svg)
+[![Crates.io](https://img.shields.io/crates/v/mut-binary-heap.svg)](https://crates.io/crates/mut-binary-heap)
+[![Documentation](https://docs.rs/mut-binary-heap/badge.svg)](https://docs.rs/mut-binary-heap/)
+[![Codecov](https://codecov.io/github/Wasabi375/mut-binary-heap/coverage.svg?branch=master)](https://codecov.io/gh/Wasabi375/mut-binary-heap)
+[![Dependency status](https://deps.rs/repo/github/Wasabi375/mut-binary-heap/status.svg)](https://deps.rs/repo/github/Wasabi375/mut-binary-heap)
 
 Enhancement over Rust's
 [`std::collections::BinaryHeap`](https://doc.rust-lang.org/stable/std/collections/struct.BinaryHeap.html).
