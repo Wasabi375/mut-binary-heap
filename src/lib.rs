@@ -1,14 +1,11 @@
-//! This crate provides [`BinaryHeap`] which is backward-compatible with
-//! [`std::collections::BinaryHeap`].
-//!
-//! Added features include:
-//! * Heaps other than max heap.
-//! * Optional [`serde`] feature.
-//!
-//! [`BinaryHeap`]: struct.BinaryHeap.html
-//! [`std::collections::BinaryHeap`]:
-//! https://doc.rust-lang.org/stable/std/collections/struct.BinaryHeap.html
-//! [`serde`]: https://docs.serde.rs/serde/
+//! This crate provides [`BinaryHeap`] that stores key-value pairs.
+//! The main advantage of that is that unlike with an implementation like
+//! [`std::collections::BinaryHeap`] checking if any given key exist is `O(1)` instead of `O(n)`.
+//! Same for getting the value for a given key. This allows for cheap modification of
+//! values within the binary heap. Updating a value is `O(log n)` iff you have direct access to the value.
+//! For a binary heap that does not store key-value pairs update operations would be `O(n)` because
+//! they first have to find the value to update. The disadvantage is the additional storage space
+//! required to store a HashMap that provides indices into the heap for each key.
 //!
 //! # Quick start
 //!
@@ -20,11 +17,11 @@
 //! use mut_binary_heap::*;
 //!
 //! // max heap
-//! let mut h: BinaryHeap<i32> = BinaryHeap::from_vec(vec![]);
+//! let mut h: BinaryHeap<i32, i32> = BinaryHeap::new();
 //! // max heap with initial capacity
-//! let mut h: BinaryHeap<i32> = BinaryHeap::from_vec(Vec::with_capacity(16));
-//! // max heap from iterator
-//! let mut h: BinaryHeap<i32> = BinaryHeap::from_vec((0..42).collect());
+//! let mut h: BinaryHeap<i32, i32> = BinaryHeap::with_capacity(42);
+//! // max heap from iterator and key selector
+//! let mut h: BinaryHeap<i32, i32> = BinaryHeap::from((0..42), |v| *v);
 //! assert_eq!(h.pop(), Some(41));
 //! ```
 //!
@@ -34,11 +31,11 @@
 //! use mut_binary_heap::*;
 //!
 //! // min heap
-//! let mut h: BinaryHeap<i32, MinComparator> = BinaryHeap::from_vec(vec![]);
+//! let mut h: BinaryHeap<i32, i32, MinComparator> = BinaryHeap::new();
 //! // min heap with initial capacity
-//! let mut h: BinaryHeap<i32, MinComparator> = BinaryHeap::from_vec(Vec::with_capacity(16));
+//! let mut h: BinaryHeap<i32, i32, MinComparator> = BinaryHeap::with_capacity(42);
 //! // min heap from iterator
-//! let mut h: BinaryHeap<i32, MinComparator> = BinaryHeap::from_vec((0..42).collect());
+//! let mut h: BinaryHeap<i32, i32, MinComparator> = BinaryHeap::from((0..42), |v| *v);
 //! assert_eq!(h.pop(), Some(0));
 //! ```
 //!
@@ -46,70 +43,30 @@
 //!
 //! ## Custom Heap
 //!
-//! For custom heap, [`BinaryHeap::from_vec_cmp()`] works in a similar way to max/min heap. The
-//! only difference is that you add the comparator closure with apropriate signature.
+//! For custom heap, [`BinaryHeap::new_by()`] and [`BinaryHeap::new_by_sort_key`]
+//! works in a similar way to max/min heap. The only difference is that you add
+//! a closure returning a [`std::cmp::Ordering`] or the sort key with an apropriate signature.
 //!
 //! ```rust
-//! use mut_binary_heap::*;
+//! use mut_binary_heap::BinaryHeap;
 //!
-//! // custom heap: ordered by second value (_.1) of the tuples; min first
-//! let mut h = BinaryHeap::from_vec_cmp(
-//!     vec![(1, 5), (3, 2), (2, 3)],
-//!     |a: &(i32, i32), b: &(i32, i32)| b.1.cmp(&a.1), // comparator closure here
-//! );
-//! assert_eq!(h.pop(), Some((3, 2)));
+//! let mut heap = BinaryHeap::new_by_sort_key(|a: &i32| a % 4);
+//! heap.push(0, 3);
+//! heap.push(1, 1);
+//! heap.push(2, 5);
+//! assert_eq!(heap.pop(), Some(3));
 //! ```
-//!
-//! [`BinaryHeap::from_vec_cmp()`]: struct.BinaryHeap.html#method.from_vec_cmp
 //!
 //! # Constructers
-//!
-//! ## Generic methods to create different kind of heaps from initial `vec` data.
-//!
-//! * [`BinaryHeap::from_vec`]`(vec)`
-//! * [`BinaryHeap::from_vec_cmp`]`(vec, cmp)`
-//!
-//! [`BinaryHeap::from_vec`]: struct.BinaryHeap.html#method.from_vec
-//! [`BinaryHeap::from_vec_cmp`]: struct.BinaryHeap.html#method.from_vec_cmp
-//!
-//! ```
-//! use mut_binary_heap::*;
-//!
-//! // max heap (default)
-//! let mut heap: BinaryHeap<i32> = BinaryHeap::from_vec(vec![1,5,3]);
-//! assert_eq!(heap.pop(), Some(5));
-//!
-//! // min heap
-//! let mut heap: BinaryHeap<i32, MinComparator> = BinaryHeap::from_vec(vec![1,5,3]);
-//! assert_eq!(heap.pop(), Some(1));
-//!
-//! // custom-sort heap
-//! let mut heap = BinaryHeap::from_vec_cmp(vec![1,5,3], |a: &i32, b: &i32| b.cmp(a));
-//! assert_eq!(heap.pop(), Some(1));
-//!
-//! // custom-key heap
-//! let mut heap = BinaryHeap::from_vec_cmp(vec![6,3,1], KeyComparator(|k: &i32| k % 4));
-//! assert_eq!(heap.pop(), Some(3));
-//!
-//! // TIP: How to reuse a comparator
-//! let mod4_comparator = KeyComparator(|k: &_| k % 4);
-//! let mut heap1 = BinaryHeap::from_vec_cmp(vec![6,3,1], mod4_comparator);
-//! assert_eq!(heap1.pop(), Some(3));
-//! let mut heap2 = BinaryHeap::from_vec_cmp(vec![2,4,1], mod4_comparator);
-//! assert_eq!(heap2.pop(), Some(2));
-//! ```
 //!
 //! ## Dedicated methods to create different kind of heaps
 //!
 //! * [`BinaryHeap::new()`] creates a max heap.
 //! * [`BinaryHeap::new_min()`] creates a min heap.
 //! * [`BinaryHeap::new_by()`] creates a heap sorted by the given closure.
-//! * [`BinaryHeap::new_by_key()`] creates a heap sorted by the key generated by the given closure.
-//!
-//! [`BinaryHeap::new()`]: struct.BinaryHeap.html#method.new
-//! [`BinaryHeap::new_min()`]: struct.BinaryHeap.html#method.new_min
-//! [`BinaryHeap::new_by()`]: struct.BinaryHeap.html#method.new_by
-//! [`BinaryHeap::new_by_key()`]: struct.BinaryHeap.html#method.new_by_key
+//! * [`BinaryHeap::new_by_sort_key()`] creates a heap sorted by the key generated by the given closure.
+//! * [`BinaryHeap::from()`] creates a max heap with the elements in the iterator and keys provided by the closure.
+// TODO create BinaryHeap::from for min and custom heaps
 
 mod binary_heap;
 pub use crate::binary_heap::*;
@@ -123,7 +80,6 @@ pub use crate::binary_heap::*;
 
 #[cfg(test)]
 mod from_liballoc {
-    // TODO reenable tests
     // The following tests copyed from liballoc/tests/binary_heap.rs
     // I can't fully confirm what the original authors meant by liballoc.
     // However this is extremely similar to:
@@ -131,9 +87,6 @@ mod from_liballoc {
     // TODO port tests that we are missing and mark commit hash for future reference
 
     use super::binary_heap::*;
-    // use std::panic;
-    // use std::collections::BinaryHeap;
-    // use std::collections::binary_heap::{Drain, PeekMut};
 
     #[test]
     fn test_iterator() {
