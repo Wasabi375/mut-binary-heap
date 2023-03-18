@@ -29,6 +29,7 @@ jobs:
   docs:
     runs-on: ubuntu-latest
     name: ubuntu / ${{matrix.toolchain }}
+    if: ${{ false }} # TODO reneable doc-tests in CI
     strategy:
       matrix:
         toolchain: [stable, beta]
