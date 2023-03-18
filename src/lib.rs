@@ -503,31 +503,32 @@ mod from_liballoc {
     //     }
 }
 
-// #[cfg(feature = "serde")]
-// #[cfg(test)]
-// mod tests_serde {
-//     use super::binary_heap::*;
-//     use serde_json;
+#[cfg(feature = "serde")]
+#[cfg(test)]
+mod tests_serde {
+    use super::binary_heap::*;
+    use serde_json;
 
-//     #[test]
-//     fn deserialized_same_small_vec() {
-//         let heap = BinaryHeap::from(vec![1, 2, 3]);
-//         let serialized = serde_json::to_string(&heap).unwrap();
-//         let deserialized: BinaryHeap<i32> = serde_json::from_str(&serialized).unwrap();
+    #[test]
+    fn deserialized_same_small_vec() {
+        let vec = vec![1, 2, 3];
+        let heap = BinaryHeap::<_, _>::from(vec, |k| k.clone());
+        let serialized = serde_json::to_string(&heap).unwrap();
+        let deserialized: BinaryHeap<i32, i32> = serde_json::from_str(&serialized).unwrap();
 
-//         let v0: Vec<_> = heap.into_iter().collect();
-//         let v1: Vec<_> = deserialized.into_iter().collect();
-//         assert_eq!(v0, v1);
-//     }
-//     #[test]
-//     fn deserialized_same() {
-//         let vec: Vec<i32> = (0..1000).collect();
-//         let heap = BinaryHeap::from(vec);
-//         let serialized = serde_json::to_string(&heap).unwrap();
-//         let deserialized: BinaryHeap<i32> = serde_json::from_str(&serialized).unwrap();
+        let v0: Vec<_> = heap.into_iter().collect();
+        let v1: Vec<_> = deserialized.into_iter().collect();
+        assert_eq!(v0, v1);
+    }
+    #[test]
+    fn deserialized_same() {
+        let vec: Vec<i32> = (0..1000).collect();
+        let heap = BinaryHeap::<_, _>::from(vec, |k| k.clone());
+        let serialized = serde_json::to_string(&heap).unwrap();
+        let deserialized: BinaryHeap<i32, i32> = serde_json::from_str(&serialized).unwrap();
 
-//         let v0: Vec<_> = heap.into_iter().collect();
-//         let v1: Vec<_> = deserialized.into_iter().collect();
-//         assert_eq!(v0, v1);
-//     }
-// }
+        let v0: Vec<_> = heap.into_iter().collect();
+        let v1: Vec<_> = deserialized.into_iter().collect();
+        assert_eq!(v0, v1);
+    }
+}

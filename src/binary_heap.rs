@@ -1624,7 +1624,7 @@ impl<K: Hash + Eq + Serialize, T: Serialize, C: Serialize> Serialize for BinaryH
         let mut state = serializer.serialize_struct("BinaryHeap", 3)?;
         state.serialize_field("data", &self.data)?;
         state.serialize_field("cmp", &self.cmp)?;
-        state.serialize_field("indices", &self.keys)?;
+        state.serialize_field("keys", &self.keys)?;
         state.end()
     }
 }
