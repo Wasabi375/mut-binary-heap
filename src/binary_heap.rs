@@ -563,6 +563,16 @@ impl<K: Hash + Eq + Clone, T, C: Compare<T> + Default> BinaryHeap<K, T, C> {
 }
 
 impl<K: Hash + Eq, T, C: Compare<T>> BinaryHeap<K, T, C> {
+    /// TODO description
+    ///
+    /// # Safety
+    ///
+    ///  caller is responsible for passing a valid combination of `data`,
+    /// `keys` and `rebuild`.
+    /// * `data`: there must not be any duplicate keys in data
+    /// * `keys`: for each key in `data` there must be a entry in `keys` with the
+    ///             index into `data`
+    /// * `rebuild`: must be `true` if `data` is not in valid heap-order based on `cmp`
     #[must_use]
     pub unsafe fn new_from_data_raw(
         data: Vec<(K, T)>,
