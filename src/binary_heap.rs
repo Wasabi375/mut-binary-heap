@@ -382,7 +382,7 @@ impl<K: Hash + Eq, T, C: Compare<T>> DerefMut for PeekMut<'_, K, T, C> {
     }
 }
 
-impl<'a, K: Hash + Eq, T, C: Compare<T>> PeekMut<'_, K, T, C> {
+impl<K: Hash + Eq, T, C: Compare<T>> PeekMut<'_, K, T, C> {
     pub fn key_value(&self) -> (&K, &T) {
         debug_assert!(!self.heap.is_empty());
         // SAFE: PeekMut is only instantiated for non-empty heaps
