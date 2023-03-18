@@ -153,7 +153,6 @@
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::hash::Hash;
-use std::slice::Iter;
 // use std::iter::FusedIterator;
 // use std::vec::Drain;
 use compare::Compare;
@@ -1307,20 +1306,20 @@ impl<K, T, C> BinaryHeap<K, T, C> {
     /// }
     /// ```
     // #[stable(feature = "rust1", since = "1.0.0")]
-    pub fn iter(&self) -> RefIter<'_, K, T> {
-        RefIter {
+    pub fn iter(&self) -> Iter<'_, K, T> {
+        Iter {
             iter: self.data.iter(),
         }
     }
 
-    pub fn iter_values(&self) -> RefValues<'_, K, T> {
-        RefValues {
+    pub fn iter_values(&self) -> IterValues<'_, K, T> {
+        IterValues {
             iter: self.data.iter(),
         }
     }
 
-    pub fn iter_keys(&self) -> RefKeys<'_, K, T> {
-        RefKeys {
+    pub fn iter_keys(&self) -> IterKeys<'_, K, T> {
+        IterKeys {
             iter: self.data.iter(),
         }
     }
@@ -2091,11 +2090,11 @@ impl<K, V> Iterator for IntoKeys<K, V> {
 }
 
 #[derive(Clone)]
-pub struct RefIter<'a, K, T> {
-    iter: Iter<'a, (K, T)>,
+pub struct Iter<'a, K, T> {
+    iter: std::slice::Iter<'a, (K, T)>,
 }
 
-impl<'a, K, T> Iterator for RefIter<'a, K, T> {
+impl<'a, K, T> Iterator for Iter<'a, K, T> {
     type Item = (&'a K, &'a T);
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -2116,18 +2115,18 @@ impl<'a, K, T> Iterator for RefIter<'a, K, T> {
     }
 }
 
-impl<'a, K, T> DoubleEndedIterator for RefIter<'a, K, T> {
+impl<'a, K, T> DoubleEndedIterator for Iter<'a, K, T> {
     fn next_back(&mut self) -> Option<Self::Item> {
         self.iter.next_back().map(|kv| (&kv.0, &kv.1))
     }
 }
 
 #[derive(Clone)]
-pub struct RefValues<'a, K, T> {
-    iter: Iter<'a, (K, T)>,
+pub struct IterValues<'a, K, T> {
+    iter: std::slice::Iter<'a, (K, T)>,
 }
 
-impl<'a, K, T> Iterator for RefValues<'a, K, T> {
+impl<'a, K, T> Iterator for IterValues<'a, K, T> {
     type Item = &'a T;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -2149,11 +2148,11 @@ impl<'a, K, T> Iterator for RefValues<'a, K, T> {
 }
 
 #[derive(Clone)]
-pub struct RefKeys<'a, K, T> {
-    iter: Iter<'a, (K, T)>,
+pub struct IterKeys<'a, K, T> {
+    iter: std::slice::Iter<'a, (K, T)>,
 }
 
-impl<'a, K, T> Iterator for RefKeys<'a, K, T> {
+impl<'a, K, T> Iterator for IterKeys<'a, K, T> {
     type Item = &'a K;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -2176,7 +2175,7 @@ impl<'a, K, T> Iterator for RefKeys<'a, K, T> {
 
 impl<'a, K, T, C> IntoIterator for &'a BinaryHeap<K, T, C> {
     type Item = (&'a K, &'a T);
-    type IntoIter = RefIter<'a, K, T>;
+    type IntoIter = Iter<'a, K, T>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.iter()
@@ -2186,24 +2185,24 @@ impl<'a, K, T, C> IntoIterator for &'a BinaryHeap<K, T, C> {
 /// An Iterator that yields mutable references to the values in the heap.
 /// The heap will be rebuild after the iterator is droped.
 // NOTE: this can not implement Clone or we invalidate the mutability guarantee.
-pub struct MutRefIter<'a, K: Hash + Eq, T, C: Compare<T>> {
+pub struct MutIter<'a, K: Hash + Eq, T, C: Compare<T>> {
     heap: *mut BinaryHeap<K, T, C>,
-    iter: Iter<'a, (K, T)>,
+    iter: std::slice::Iter<'a, (K, T)>,
 }
 
 impl<'a, K: Hash + Eq, T, C: Compare<T>> IntoIterator for &'a mut BinaryHeap<K, T, C> {
     type Item = (&'a K, &'a mut T);
-    type IntoIter = MutRefIter<'a, K, T, C>;
+    type IntoIter = MutIter<'a, K, T, C>;
 
     fn into_iter(self) -> Self::IntoIter {
-        MutRefIter {
+        MutIter {
             heap: self,
             iter: self.data.iter(),
         }
     }
 }
 
-impl<'a, K: Hash + Eq, T, C: Compare<T>> Iterator for MutRefIter<'a, K, T, C> {
+impl<'a, K: Hash + Eq, T, C: Compare<T>> Iterator for MutIter<'a, K, T, C> {
     type Item = (&'a K, &'a mut T);
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -2212,7 +2211,7 @@ impl<'a, K: Hash + Eq, T, C: Compare<T>> Iterator for MutRefIter<'a, K, T, C> {
             let ptr: *const T = &kv.1 as *const T;
             let mut_ptr: *mut T = ptr as *mut T;
             // SAFTEY: We have mut access to the heap, because we are in a
-            //  MutRefIter which can only be constructed with a mut ref to the
+            //  MutIter which can only be constructed with a mut ref to the
             //  heap.
             //
             //  We only give out a mut ref once per element in the heap, so this
@@ -2230,9 +2229,9 @@ impl<'a, K: Hash + Eq, T, C: Compare<T>> Iterator for MutRefIter<'a, K, T, C> {
     }
 }
 
-impl<'a, K: Hash + Eq, T, C: Compare<T>> Drop for MutRefIter<'a, K, T, C> {
+impl<'a, K: Hash + Eq, T, C: Compare<T>> Drop for MutIter<'a, K, T, C> {
     fn drop(&mut self) {
-        // SAFETY: MutRefIter was constructed from a valid mut reference
+        // SAFETY: MutIter was constructed from a valid mut reference
         let heap = unsafe { &mut *self.heap };
         heap.rebuild();
     }
