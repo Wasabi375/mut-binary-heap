@@ -12,7 +12,7 @@
 //!
 //! ## Max/Min Heap
 //!
-//! For max heap, [`BinaryHeap::from_vec()`] is the most versatile way to create a heap.
+//! ### Max Heap
 //!
 //! ```rust
 //! use mut_binary_heap::*;
@@ -26,7 +26,7 @@
 //! assert_eq!(h.pop(), Some(41));
 //! ```
 //!
-//! Min heap is similar, but requires type annotation.
+//! ### Min Heap
 //!
 //! ```rust
 //! use mut_binary_heap::*;
