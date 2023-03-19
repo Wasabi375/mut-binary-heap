@@ -1598,6 +1598,7 @@ impl<K, T, C> BinaryHeap<K, T, C> {
     #[inline]
     // #[stable(feature = "drain", since = "1.6.0")]
     pub fn drain(&mut self) -> Drain<'_, (K, T)> {
+        self.keys.clear();
         Drain {
             iter: self.data.drain(..),
         }
@@ -2426,5 +2427,29 @@ mod test {
         assert_eq!(heap.pop_with_key(), None);
 
         assert_key_map_valid(&heap);
+    }
+
+    #[test]
+    fn valid_key_map_after_clear() {
+        // TODO why do I need to specify the type here? The compiler should be able to infer this
+        let mut heap: BinaryHeap<_, _> = BinaryHeap::new();
+
+        assert_key_map_valid(&heap);
+
+        heap.push(0, 0);
+
+        assert_key_map_valid(&heap);
+
+        heap.push(1, 10);
+        heap.push(2, 15);
+        heap.push(3, 5);
+        heap.push(4, 8);
+
+        assert_key_map_valid(&heap);
+
+        heap.clear();
+
+        assert_key_map_valid(&heap);
+        assert_eq!(heap.len(), 0);
     }
 }
