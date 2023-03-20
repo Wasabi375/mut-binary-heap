@@ -14,9 +14,6 @@ For a binary heap that does not store key-value pairs update operations would be
 they first have to find the value to update. The disadvantage is the additional storage space
 required to store a hash map that provides indices into the heap for each key.
 
-Enhancement over Rust's
-[`std::collections::BinaryHeap`](https://doc.rust-lang.org/stable/std/collections/struct.BinaryHeap.html).
-
 
 ## MSRV (Minimum Supported Rust Version)
 
