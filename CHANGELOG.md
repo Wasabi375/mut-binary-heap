@@ -6,9 +6,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.1.0] - TODO date
+## [0.1.0] - 2023-03-20
  
-* TODO
+* refactor to store key-value pairs instead of simple values
+* `contains_key`, `get_mut`, `get`
+
+### Known issues
+
+* compiler is often not able to infer the `Compare` type `C` for constructor functions.
+* still missing some common trait implementations [C-COMMON-TRAITS](https://rust-lang.github.io/api-guidelines/interoperability.html#c-common-traits)
+ * still some conversion traits missing [C-CONV-TRAITS](https://rust-lang.github.io/api-guidelines/interoperability.html#c-conv-traits)
+ * some collection traits missing [C-COLLECT](https://rust-lang.github.io/api-guidelines/interoperability.html#c-collect)
+ * `Debug` is not implemented for all public types [C-DEBUG](https://rust-lang.github.io/api-guidelines/debuggability.html#c-debug)
 
 # Changelog [Binary Heap Plus](https://github.com/sekineh/binary-heap-plus-rs)
 

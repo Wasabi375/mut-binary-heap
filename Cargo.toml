@@ -2,17 +2,14 @@
 name = "mut-binary-heap"
 version = "0.1.0"
 authors = ["Burkhard Mittelbach <burkhard@mittelbach-online.de>"]
-description = "Enhanced version of std::collections::BinaryHeap that supports increase and decrease key, max, min, and custom-order heaps and increas."
-license = "MIT"
-repository = "https://github.com/Wasabi375/binary-heap-plus-rs" # TODO change path
+description = "Enhanced version of std::collections::BinaryHeap that supports increase and decrease key, max, min, and custom-order heaps."
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/Wasabi375/mut-binary-heap"
 readme = "README.md"
 keywords = ["binary", "heap", "priority", "queue"]
 categories = ["data-structures", "algorithms", ]
 edition = "2021"
 rust-version = "1.56.0"
-
-[lib]
-doctest = false # TODO reenable doc tests
 
 [dependencies]
 compare = "0.1.0"
