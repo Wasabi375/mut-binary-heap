@@ -308,7 +308,8 @@ mod from_liballoc {
         let data = vec![2, 4, 6, 2, 1, 8, 10, 3, 5, 7, 0, 9, 1];
         let mut sorted = data.clone();
         sorted.sort();
-        let mut heap = BinaryHeap::<_, _>::from(data, |k| k.clone());
+        let data = data.into_iter().enumerate().map(|(i, v)| (i, v));
+        let mut heap: BinaryHeap<_, _> = data.collect();
         while !heap.is_empty() {
             assert_eq!(heap.peek().unwrap(), sorted.last().unwrap());
             assert_eq!(heap.pop().unwrap(), sorted.pop().unwrap());
@@ -317,8 +318,11 @@ mod from_liballoc {
 
     #[test]
     fn test_peek_mut() {
-        let data = vec![2, 4, 6, 2, 1, 8, 10, 3, 5, 7, 0, 9, 1];
-        let mut heap = BinaryHeap::<_, _>::from(data, |k| k.clone());
+        let data = [2, 4, 6, 2, 1, 8, 10, 3, 5, 7, 0, 9, 1]
+            .into_iter()
+            .enumerate()
+            .map(|(i, v)| (i, v));
+        let mut heap: BinaryHeap<_, _> = data.collect();
         assert_eq!(heap.peek(), Some(&10));
         {
             let mut top = heap.peek_mut().unwrap();
@@ -329,8 +333,11 @@ mod from_liballoc {
 
     #[test]
     fn test_peek_mut_pop() {
-        let data = vec![2, 4, 6, 2, 1, 8, 10, 3, 5, 7, 0, 9, 1];
-        let mut heap = BinaryHeap::<_, _>::from(data, |k| k.clone());
+        let data = [2, 4, 6, 2, 1, 8, 10, 3, 5, 7, 0, 9, 1]
+            .into_iter()
+            .enumerate()
+            .map(|(i, v)| (i, v));
+        let mut heap: BinaryHeap<_, _> = data.collect();
         assert_eq!(heap.peek(), Some(&10));
         {
             let mut top = heap.peek_mut().unwrap();
